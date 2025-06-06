@@ -1,0 +1,1813 @@
+//
+// Copyright (c) 2020-2025 NVI, Inc.
+//
+// This file is part of the FSL11 Linux distribution.
+// (see http://github.com/nvi-inc/fsl11).
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+//
+
+:doctype: book
+
+= CIS hardening for FSL11
+:sectnums:
+:experimental:
+:toclevels: 3
+:toc:
+Dave Horsley and Ed Himwich
+Version 1.2.2 - March 2025
+
+:sectnums!:
+== Document revision history
+
+Click the "`Details`" toggle below for the revision history.
+
+[%collapsible]
+====
+
+* 1.2.2 -- Add how to allow _operators_ to use _reboot_ and _shutdown_
+
+* 1.2.1 -- Simplify code block for copying _root_ public key to AUID
+account
+
+* 1.2.0 -- Minor release
+
+* 1.1.10 -- Add collapsible box for document revision history
+
+* 1.1.9 -- Add reference to AUID customization document
+
+* 1.1.8 -- Remove setting ownership of AUID customization `rc` files.
+
+* 1.1.7 -- Consolidate AUID setup into FSL11; set _~oper_ and _~prog_
+to be readable/searchable by _others_; add _.bashrc_ _sudo_
+customization scripts; make _sudo_ customization scripts owned by the
+`SUDO_USER`; don't set _sysadmin_'s prompts to use host alias; clarify
+running X11 applications as _root_; fix automatic numbering of AUID
+installation steps
+
+* 1.1.6 -- Correct host alias setup for _refresh_spare_usr2_ and
+_backup_usr2_ yet again, use _ssh-keyscan_ to set _known_hosts_, make
+the _spare_ system a _known host_ for _root_ on the _operational_ system,
+add link for updating host alias in _.bashrc_ for subsequent AUID accounts
+
+* 1.1.5 -- Cleanup: change _chage_ `-M` parameter to `-1`, explain
+_operational_ and _spare_ changes for using _hostalias_, fix path to
+_~fsl11/AUID/install_RAID_ script, move copying _root_ _ssh_ key to
+setting up _backup_usr2_, explain running _X_ applications as _root_,
+warn about benign _./root_tmp_ error message, move removing AUID
+account time-outs to AUID account setup, wording fixes
+
+* 1.1.4 -- Remove CIS password aging/expiration for desktop
+
+* 1.1.3 -- Disable _oper_ and _prog_ password expiration, they don't have passwords
+
+* 1.1.2 -- Correct responses to _adduser_; create _~AUID/.ssh_ in case
+it doesn't already exist
+
+* 1.1.1 -- Use _backup_user2_ to run _refresh_spare_usr2_ for CIS
+hardening, removing _enable_spare_ and _disable_spare_; add copying
+key for backup_usr2
+
+* 1.1.0 -- Add installing AUID use of _refresh_spare_usr2_; add new
+section on AUID use of _refresh_spare_usr2_ section using
+_enable_spare_ and _disable_spare_; restructure installing _sudo_
+access for rotation scripts and _root_ account; remove UID/GID
+parallelism; correct use of _computer_ when _system_ is correct
+
+* 1.0.5 -- Limit AUID options for _refresh_secondary_
+* 1.0.4 -- Remove _shutdown_, _reboot_, and _refresh_spare_usr2_ from
+_sudoers_; cleanup _refresh_spare_usr2_ only for _root_
+
+* 1.0.3 -- Optionally disable oper/prog shell time-out
+* 1.0.2 -- Add no GUI login and other new remediations
+* 1.0.1 -- Fix typo in desktop setup
+* 1.0.0 -- Initial release
+
+====
+
+:sectnums:
+
+== Introduction
+
+These notes detail adding extra security features to Field System
+Linux _11_, FSL11, as advised by Center for Internet Security (CIS).
+This is provided as an option for sites that might need additional
+security.
+
+At the time of this writing, there is no CIS security benchmark for
+Debian _11_, which is what FSL11 is based on. Instead, the latest
+benchmark for Debian _10_ was used. Although this is not technically
+correct, the changes in the benchmark for Debian _10_ compared to
+Debian _9_ were relatively minor; primarily removal of items. It seems
+plausible that the Debian _10_ benchmark will be adequate for Debian
+_11_. In fact, all of the items that fail for FSL11 are either things
+that are required for  FS operation, items that appear to actually be
+secure despite the benchmark not recognizing them as such, and one
+change since Debian _10_ that we worked around.  However, we don't
+know what additional checks will be in the Debian _11_ benchmark.
+
+[NOTE]
+====
+
+Additional steps needed to use the benchmark:
+
+. Install the package `default-jre` with _apt-get_.
+
+. Disable the _java_ version check in _CIS-CAT.sh_.
+
+. Change `ignore.platform.mismatch` to `true` in
+_misc/ciscat.properties_.
+
+====
+
+With the exception of the partition configuration, all actions are to
+be performed post-installation (see the <<installation.adoc#,FSL11
+Installation>> document). Applying the remediations, the exceptions
+that are still present, all tests that failed, and problems with the
+benchmark remediations are provided in separate sections below. An
+appendix covers additional setup that is needed for FS operations
+after the remediations have been applied.
+
+This document  is based on the results for the "`CIS Debian Linux 10
+Benchmark v1.0.0 - Level 2 - Server`".
+
+== Applying CIS remediations
+
+=== Installation partition configuration
+
+During installation, be sure to create the logical volumes marked
+optional in the partition setup section.
+
+=== Post-installation remediations
+
+All commands need to be run as _root_.
+
+==== Scripted remediations
+
+As many remediations as possible are implemented by the _remediate_
+script.  The script is intended to be run after the "`Third Stage
+Installation`" steps in the FSL11 instructions, before any further
+changes have been made to the system (however initializing and adding
+other disks to the RAID can intervene).
+
+To apply these remediations, execute the commands:
+
+....
+cd /root/fsl11
+script ../remediate.txt
+./remediate
+exit
+....
+
+IMPORTANT: This script should not be run more than once on a system.
+
+TIP: The use of the _script_ command causes the output to be recorded
+in the specified file. This can be very helpful for understanding what
+went wrong if the script fails. The script itself uses the `-x` option
+to echo the commands as they are executed to make it easy to match the
+output with the commands being executed.
+
+==== Reboot
+
+The system should be rebooted to make sure all the remediations have
+been applied. Some aren't enforced until a reboot.
+
+After the reboot, all the CIS remediations that can applied at this
+point have been completed. The
+<<Additional CIS policies>> subsection below describes some other
+policies that can be considered.
+
+==== Additional remediations
+
+The subsection applies a second round of scripted remediations and an
+unscripted remediation that both go beyond the CIS benchmark. Before
+applying the scripted remediations, an account must be created that
+will have the ability to promote to _root_. Please see the
+<<Enabling user promotion to oper/prog and root>> and
+<<Adding AUID accounts>> sections of the
+<<Additional items for FS operations>> appendix for the details of
+configuring such an account.
+
+===== Run the script
+
+To apply the scripted remediations, execute the commands:
+
+IMPORTANT: These scripted remediations including disabling direct
+_root_ login. If there is no account that is able to promote to
+_root_ before they are applied, it will become impossible to get
+_root_ access.
+
+....
+cd /root/fsl11
+script ../remediate2.txt
+./remediate2
+exit
+....
+
+IMPORTANT: This script should not be run more than once on a system.
+
+This script will place a backup of all the original files modified by
+the script in the directory _/root/remediate2_backups_.
+
+===== Unscripted remediation
+
+This remediation is to specify a FQDN for a server in the
+_/etc/ntp.conf_ file. The server must be within the same second-level
+domain as the system being hardened. If you using the recommended FS
+NTP configuration, you can add lines for the `_FQDN_` after the lines
+for the `_alias_` of the server. There must be _exactly_ one space (no
+tabs) between `server` and the `_FQDN_`. The result would be something
+like:
+
+[subs="+quotes"]
+----
+# if you update this one, also update the FQDN version below
+server      _alias_ iburst minpoll 4
+restrict    _alias_ kod notrap nomodify nopeer noquery
+#
+# if you update this one, also update the aliased version above
+server _FQDN_ iburst minpoll 4
+restrict _FQDN_ kod notrap nomodify nopeer noquery
+----
+
+The lines for the _alias_ may still work to locate the server if there
+is a DNS problem.  The comments may help get the correct result if
+this server changes.
+
+===== Second remediation reboot
+
+The system should be rebooted to make sure all the remediations have
+been applied. Some aren't enforced until a reboot.
+
+NOTE: After this reboot, the GUI login on the console will be
+disabled.  Locally, it will only be possible to login on a text
+console.
+
+=== Additional CIS policies
+
+:sectnums!:
+
+This section lists further topics related to the benchmark that should
+be discussed. The items are listed by benchmark section numbers.
+
+==== 1.5.2 Ensure bootloader password is set
+
+You may wish to create an encrypted password with
+grub-mkpasswd-pbkdf2:
+
+....
+grub-mkpasswd-pbkdf2
+Enter password: <password>
+Reenter password: <password>
+Your PBKDF2 is <encrypted-password>
+....
+
+Add the following into  a custom _/etc/grub.d_ configuration file
+(don't use _/etc/grub.d/00_header_ as it can be overwritten by a
+package update):
+
+....
+cat <<EOF
+set superusers="<username>"
+password_pbkdf2 <username> <encrypted-password>
+EOF
+....
+
+If there is a requirement to be able to boot/reboot without entering
+the password, edit _/etc/grub.d/10_linux_ and add `--unrestricted` to the
+line `CLASS=`
+
+IMPORTANT: It is strongly recommended that booting without a password
+be permitted. Otherwise, if a reboot is required to continue
+operations it will not be possible unless some one with the password
+is available. If they aren't available, this could lead to a safety
+issue or loss of VLBI data.
+
+Example:
+
+....
+CLASS="--class gnu-linux --class gnu --class os --unrestricted"
+....
+
+Run the following commands to update the grub2 configuration and reset
+the _grub.cfg_ permissions:
+
+....
+update-grub
+chmod go-rwx /boot/grub/grub.cfg
+....
+
+==== 1.8.1.2 Ensure the local login warning banner is configured properly
+
+You may want to update _/etc/issue_ to have a more tailored message
+with sterner warnings. The message must not include use of `\m`, `\r`,
+`\s`, `\v`, or references to the OS platform.
+
+==== 1.8.1.3 Ensure the remote login warning banner is configured properly
+
+You may want to update _/etc/issue.net_ to have a more tailored
+message with sterner warnings. The message must not include use of
+`\m`, `\r`, `\s`, `\v`, or references to the OS platform.
+
+==== 1.8.2 Ensure GDM login banner is configured properly
+
+You may want to update _/etc/gdm3/greeter.dconf-defaults_ to have a
+more tailored message with sterner warnings.
+
+If desired, you can remove the Debian logo from the GUI login page by
+renaming the file specified for the `logo` option of the
+`[org/gnome/login-screen]` section in
+_/etc/gdm3/greeter/dconf-defaults_. For example, if appropriate, you
+might use:
+
+ cd /usr/share/images/vendor-logos
+ mv logo-text-version-64.png logo-text-version-64.png.bak
+
+If desired, you can remove the Debian logo from the _grub_ menu by
+renaming the file specified for in the `if` clause for the
+`background_image` file in the `/etc/grub.d/05_debian_theme` section
+of _/boot/grub/grub.cfg_. For example, if appropriate, you might use:
+
+ cd /usr/share/desktop-base/homeworld-theme/grub
+ mv grub-4x3.png grub-4x3.png.bak
+
+[IMPORTANT]
+====
+
+Caveat Emptor! The changes below in this *IMPORTANT* section may not
+be safe. Even if they appear to be successful, they may case problems
+later. The problems may include failure of automatic updates. They may
+also need to be reinstalled after updates.
+
+After making any or all of these changes, it is necessary to execute:
+
+ update-grub
+
+for them to take effect.
+
+. In principle, you can remove the `Debian` label from the _grub_ boot
+menus by editing _/etc/default/grub_ and inserting a line:
+
+ GRUB_DISTRIBUTOR=FSL11
+
++
+
+immediately after the existing `GRUB_DISTRIBUTOR=...` line.
+
+. In principle, you can remove the `GNU/Linux` label from the _grub_
+boot menus by editing _/etc/grub.d/10_linux_ and inserting a line:
+
+ OS="${GRUB_DISTRIBUTOR}"
+
++
+
+immediately after the existing `OS="${GRUB_DISTRIBUTOR} GNU/Linux"`
+line.
+
+
+. In principle, you can remove the `Linux` label from the lines
+displaying kernel image files, by editing _/etc/grub.d/10_linux_ and
+globally replacing `{nbsp}Linux{nbsp}` (note the single leading and
+single trailing spaces) with `{nbsp}FSL11{nbsp}` (not the single
+leading and single trailing spaces).
+
+====
+
+==== 2.2.1.4 Ensure ntp is configured
+
+This needs the  FS NTP configuration. That is more secure than the
+benchmark since it uses `ignore` by default.
+
+==== 4.1.2.3 Ensure system is disabled when audit logs are full
+
+This may not be appropriate for an operational system.
+
+==== 4.2.1.5 Ensure rsyslog is configured to send logs to a remote host
+
+To set a remote log host, edit the _/etc/rsyslog.conf_ and/or the
+_/etc/rsyslog.d/*.conf_ files and add lines like the following
+(replace angle bracket items, `<...>`, with your values):
+
+....
+<files to sent to the remote log server> action(type="omfwd" target="<FQDN or ip of loghost>" port="<port number>" protocol="tcp"
+action.resumeRetryCount="<number of re-tries>"
+queue.type="linkList" queue.size=<number of messages to queue>")
+....
+
+or
+
+....
+*.* @@<FQDN or ip of loghost>
+....
+
+Run the following command to reload the _rsyslog_ configuration:
+
+....
+systemctl reload rsyslog
+....
+
+==== 5.2.16 Ensure SSH Idle Timeout Interval is configured
+
+Five minutes is too short and is not commensurate with the recommended
+15 minute auto-logout interval.
+
+==== 5.3.1 Ensure password creation requirements are configured
+
+Should the minimum be reduced to 12 characters?
+
+==== 5.3.2 Ensure lockout for failed password attemtps is enabled
+
+The number of login failures before lock-out can cause a problem if it
+is set too low. The main issue is for an operator working at odd
+hours, alone, at a remote location, and dealing with multiple issue,
+which might include: power failures, equipment problems, and
+logistical issues. It can be a chaotic situation. Typing long and
+complicated passwords in the heat of battle, particularly if they vary
+between machines, can be error-prone. Being locked-out will make the
+situation more difficult and may increase the amount of data that will
+be lost.
+
+If you find that the number of login failures before lock-out is too
+small, you can increase it by increasing the value of the `deny`
+parameter (`5` in the example below, other typical parameters are
+omitted and should not be changed) in:
+
+./etc/pam.d/common-auth
+[source]
+----
+auth required pam_faillock.so deny=5
+----
+
+Small integer values (`20` or less) should not be a significant risk
+with long and complicated passwords and a unlock time of several
+minutes.
+
+==== 5.4.1.4 Ensure inactive password lock is 30 days or less
+
+This is too short for developers/troubleshooters. A value of `60`
+would be commensurate with the password reset interval.
+
+:sectnums:
+
+=== Other policies
+
+This subsection describes other policies beyond the CIS benchmark that
+may be desirable.
+
+==== TCP wrappers configuration
+
+You may wish to configure TCP wrappers.
+
+===== /etc/hosts.deny
+
+Add:
+
+....
+ALL:ALL
+....
+
+===== /etc/hosts.allow
+
+Add:
+
+....
+sshd:ALL
+....
+
+It is recommended that you further restrict _sshd_ to specific hosts
+and/or sub-domains.
+
+==== Set log retention period
+
+You may want to set the retention period of system logs by
+editing _/etc/logrotate.conf_ and/or _/etc/logrotate.d/*_, as
+appropriate.
+
+== CIS Exceptions
+
+:sectnums!:
+
+This section addresses the tests that failed in the CIS benchmark
+after all the remediations in this document were applied. The items
+are listed by benchmark section numbers.
+
+=== 1.4.2 Ensure filesystem integrity is regularly checked
+
+The AIDE system now performs a check daily and generates a report, so
+this is no longer needed.
+
+=== 1.5.2 Ensure bootloader password is set
+
+This must be set later by the system administrator.
+
+=== 2.2.2 Ensure X Window System is not installed
+
+The X11 Window system is required for FS use.
+
+=== 2.2.4 Ensure CUPS is not enabled
+
+The CUPS printing systems is required for operations.
+
+=== 3.5.2.5 Ensure firewall rules exist for all open ports
+
+There is a _ufw_ rule for _Openssh_ (port 22), but the benchmark
+doesn't accept that. Additional openings can be added as needed.
+
+=== 3.5.3.7 Ensure nftables service is enabled
+
+Although the benchmark also uses _ufw_, which is enabled and uses
+_nftables_, for some reason this is not recognized.
+
+=== 3.5.3.8 Ensure nftables rules are permanent
+
+Although the benchmark also uses _ufw_, which has permanent rules  and
+uses _nftables_, for some reason this is not recognized.
+
+=== 4.2.1.5 Ensure rsyslog is configured to send logs to a remote log host
+
+A remote log server must be configured later by the system
+administrator.
+
+=== 5.2.6 Ensure SSH X11 forwarding is disabled
+
+Using _ssh_ X11 forwarding is required for for remote FS operations
+and testing.
+
+=== 5.3.2 Ensure lockout for failed password attempts is configured
+
+The benchmark, which is for Debian _10_, uses _pam_tally2.so_ for
+this. However _pam_tally2.so_ is not available in Debian _11_, having
+been replaced with _pam_faillock.so_. The _remediate_ script
+implements the intent of the recommended _pam_tally2.so_ configuration
+with _pam_faillock.so_.
+
+NOTE: To reset a locked-out user after CIS hardening, as _root_  use
+`*faillock --user _username_  --reset*` where `*_username_*` is the
+user account. Leave off the `--reset` to see what the current failure
+count is.
+
+:sectnums:
+
+== CIS Remediation problems
+
+:sectnums!:
+
+This section details problems with the recommended remediations.  The
+items are listed by benchmark section numbers.
+
+Some problems were worked around by adding a boot time _systemd_
+service `CISfix` to correct changes that occur on a reboot.
+
+=== 1.1.10 Ensure noexec option set on /var/tmp partition
+
+Enforcing this requirement for the currently running system before all
+the other remediations have been applied can interfere with execution
+of `apt-get install ...` to install packages needed for the
+remediation. Instead, although _/etc/fstab_ is updated in sequence,
+remounting the file systm is deferred to the end.
+
+=== 1.4.2 Ensure filesystem integrity is regularly checked
+
+The _/etc/crontab_ entry that should be added is missing the user
+(_root_) field. Additionally Debian no longer provides _aide.wrapper_.
+However, the AIDE system now performs a check daily and generates a
+report, so this is no longer needed.
+
+=== 1.5.1 Ensure the permissions on the bootloader are configured
+
+The permissions are reset every time _update-grub_ is run, e.g., for a
+kernel update. Fixing them was added to the `CISfix` _systemd_
+service at boot.
+
+=== 2.2.1.4 Ensure ntp is configured
+
+The remediation makes it less secure. A default policy of `ignore` is
+better.
+
+=== 3.3.4 Ensure suspicious packets are logged
+
+The remediation lines added in _/etc/sysctl.d/*_ for this issue are
+not respected at boot (unlike all others). To overcome this, the
+following lines are used in the `CISfix` _systemd_ service at boot.
+
+....
+sysctl -w net.ipv4.conf.all.log_martians=1
+sysctl -w net.ipv4.conf.default.log_martians=1
+sysctl -w net.ipv4.route.flush=1
+....
+
+=== 4.1.5 Ensure events that modify the system's network environment are collected
+
+The 64-bit remediation had the `b64` and the `b32` rules concatenated
+on one line.
+
+=== 4.1.16 Ensure kernel module loading and unloading is collected
+
+The 64-bit remediation was missing the `b32` rule.
+
+=== 4.2.3 Ensure permissions on all logfiles are configured
+
+There are two issues:
+
+. The recommended remediation makes the entire directory tree
+_/var/log_ unsearchable by everyone except _root_. This breaks some
+functionality, in particular email. As a result, the remediation was
+scaled back to just the minimum required to pass the test, which was
+to just set the permission on the files themselves instead changing
+the directory permissions as well. This could be made more targeted.
+For example to allow email use, just _/var/log_ and _/var/log/exim4_
+could be made searchable.
+
+. The permissions for some logfiles are reset each time the system
+reboots. Fixing them was added to the `CISfix` _systemd_ service at
+boot.
+
+=== 6.1.6 Ensure permissions on /etc/passwd- are configured
+
+The permissions are reset each time the system reboots. Fixing them
+was added to the `CISfix` _systemd_ service at boot.
+
+=== 6.1.7 Ensure permissions on /etc/shadow- are configured
+
+The permissions are reset each time the system reboots. Fixing them
+was added to the `CISfix` _systemd_ service at boot.
+
+=== 6.1.8 Ensure permissions on /etc/group- are configured
+
+The permissions are reset each time the system reboots. Fixing them
+was added to the `CISfix` _systemd_ service at boot.
+
+=== 6.1.11 Ensure no unowned files or directories exist
+
+After each boot, the file _/var/cache/private/fwupdmgr_ has no owner.
+Fixing that was added to the `CISfix` _systemd_ service at boot.
+
+=== 6.1.12 Ensure no ungroup files or directories exist
+
+After each boot, the file _/var/cache/private/fwupdmgr_ has no group.
+Fixing that was added to the `CISfix` _systemd_ service at boot.
+
+:sectnums:
+
+[appendix]
+
+== Additional items for FS operations
+
+After the CIS hardening is completed, some additional set-up is
+needed. In addition, one item below gives the procedure for running
+_refresh_spare_user_ with CIS hardening.
+
+=== Fix-ups
+
+There are two issues that may need to be corrected after the CIS
+hardening.
+
+. Using the `noexec` option for _/tmp_ causes a problem for the
+package management system. The _dpkg-preconfigure_ program places and
+executes scripts on _/tmp_ as part of package installation. The
+`noexec` option prevents the execution of the scripts. To work around
+this issue, you can exeucte:
+
+    cd /root/fsl11/
+    ./root_tmp
+
++
+[NOTE]
+====
+The error message:
+
+ Failed to disable unit: Unit file root_tmp.service does not exist.
+
+is benign.
+====
+
++
+
+The _root_tmp_ script performs three actions:
+
+.. Creates a one time service at boot to clean the _/root/tmp_ directory
+.. Sets _dpkg-preconfigure_ to use _/root/tmp_ for temporary files
+.. Creates an initial _/root/tmp_ directory
+
++
+
+There may be other issues with using the `noexec` option for _/tmp_,
+but we don't have any specifics at this time.
+
+. Sometimes the firewall (_ufw_) does not work properly after rebooting.
+This has been noticed for remote access to _gromet_ for met. data on
+port 50001. There are no other known issues. An apparent fix for this
+is to disable and re-enable the firewall. If you have this problem and
+the same solution works, a one-time service at start-up can be created
+to perform this action:
+
+  cd /root/fsl11
+  ./create_ufw_re-enable
++
+
+The new service will run at the next reboot. It is configured to run
+_after_ _ufw_ has been started.
+
+=== Enabling user promotion to oper/prog and root
+
+The model used in the FS assumes _oper_ and _prog_ accounts will be
+used for operations and programming respectively. However, some
+organizations may have security and auditing restrictions that mean
+operators must login using their own account (possibly named with
+their Agency User ID, or AUID). As the FS currently operates, users
+will then need to switch, i.e., _promote_, to the _oper_ or _prog_
+account after login. Likewise, if a user is allowed to promote to
+_root_, they will need to do so after logging into their own account.
+This subsection covers how to enable this capability. The next
+subsection, <<Adding AUID accounts>>, covers how to add an AUID
+account.
+
+For _oper_ and _prog_, we suggest creating two groups that can _sudo_
+to the accounts. Run _visudo_, then add at end:
+
+    %operators      ALL=(oper) ALL
+    %programmers    ALL=(prog) ALL
+    %programmers    ALL=(oper) ALL
+
+To allow _operators_ to use _shutdown_ and _reboot_ add
+(respectively):
+
+   %operators      ALL=(ALL) /sbin/shutdown
+   %operators      ALL=(ALL) /sbin/reboot
+
+To use these commands the _operators_ will need to enter
+(respectively) from their AUID accounts:
+
+   sudo shutdown
+   sudo reboot
+
+A password will be required. Trailing options can be used with the
+commands, as appropriate.
+
+If they don't already exist, create the needed groups:
+
+    addgroup operators
+    addgroup programmers
+
+If they don't already, set _oper_ and _prog_ to have _bash_ as their
+login shells:
+
+    chsh -s /bin/bash oper
+    chsh -s /bin/bash prog
+
+IMPORTANT: When promoting to _oper_ and _prog_ (and _root_), the only
+supported login shell for the target accounts is _bash_. It would be
+possible to support _tcsh_. That would require adding promotion
+machinery to the _~/.login_ files that is equivalent to what is in the
+current _~/.profile_ files. Please contact Ed for more information.
+
+Optionally, to disable shell inactivity time-outs for the _oper_ and
+_prog_ accounts, edit their respective _.bashrc_ files and uncomment
+the line:
+
+  unset TMOUT
+
+If the accounts, and _desktop_, haven't been disabled for login
+already, do so:
+
+    usermod -L oper
+    usermod -L prog
+    usermod -L desktop
+
+Disable password aging and account inactivity expiration for those
+accounts. Execute:
+
+----
+chage -I -1 -M -1 oper
+chage -I -1 -M -1 prog
+chage -I -1 -M -1 desktop
+----
+To prevent connecting with _ssh_ using a key, create (or add _oper_
+and _prog_ to an existing) `DenyUsers` line in _/etc/ssh/sshd_config_:
+
+NOTE: If you used the CIS _remediate_ script, you should comment out
+the line: `DenyGroup rtx` as well.
+
+....
+DenyUsers desktop oper prog
+....
+
+And restart _sshd_ with:
+
+....
+systemctl restart sshd
+....
+
+Authorized users can then switch to _oper_ with (similarly for
+_prog_ and _root_):
+
+    sudo -i -u oper
+
+The _sudo_ command will prompt for the AUID account's password.
+Within a session, _sudo_ will not prompt again for 15 minutes after
+its last successful use.
+
+The following example steps are used to ensure that X11 authorization
+works. This example is for user _oper_ and works analogously for
+_prog_ and _root_ (but see the paragraph at the end of step (1) for
+more information about _root_'s configuration). After the steps are
+presented, there is information on a script that implements these
+changes for all three accounts in one step.
+
+. [[profile]]<<profile,.profile>>: Add this to the following file:
+
++
+.~oper/.profile
+[source,bash]
+```
+#
+# authorise XCOOKIE for remote users
+if ! [ -z ${XCOOKIE+x} ]; then
+   xauth add $XCOOKIE
+fi
+# set .Xresources/window-manager coming from AUID accounts
+if ! [ -z ${DISPLAY+x} ]; then
+#   NOT no DISPLAY defined, do something (otherwise do nothing)
+    if echo $DISPLAY |grep -q localhost; then
+#       ssh from remote host with X display
+        xrdb -merge ~/.Xresources
+    else
+#       login shell (because this is .profile) on the local X console
+        xrdb -merge ~/.Xresources
+        setsid fvwm --replace >/dev/null 2>&1 &
+    fi
+fi
+#
+# include AUID user's .profile_SUDO_USER
+if [ -n "$SUDO_USER" ]; then
+    if [ -f "$HOME/.profile_$SUDO_USER" ]; then
+        . "$HOME/.profile_$SUDO_USER"
+    fi
+fi
+```
++
+
+This will also set the Xresources to those of _oper_, replace the
+current window manager with one owned by _oper_ (protected from
+kbd:[Ctrl+C] by _setsid_) for a local console X11 session, and run a
+_bash_ script (if present) to apply customizations for the _sudo_ user
+in a login shell. Additional customization may be run (earlier) from
+the _.bashrc_ file, which is also executed for non-login shells; see
+the <<bashrc,.bashrc>> step below. (For _root_ only the first clause
+would be used since Xresources would not be set, the window manager
+would not be replaced, and there would not be _sudo_ user
+customization.)
+
+. Create the following file:
++
+./usr/local/bin/oper_account
+[source,bash]
+```
+set -e
+
+if [ "$USER" = "prog" ]; then
+  echo "ERROR: Cannot promote to oper from $USER account. Promote from $SUDO_USER instead."
+  exit 1
+elif [ "$USER" = "oper" ]; then
+  echo "ERROR: Already in $USER account."
+  exit 1
+fi
+
+if [ -z ${DISPLAY+x} ]; then
+#   no DISPLAY set
+    sudo -u oper -i "$@"
+elif echo $DISPLAY |grep -q localhost; then
+#   remote user
+    sudo -u oper XCOOKIE="$(xauth list $DISPLAY)" -i "$@"
+else
+#   on console X server
+    if ! xhost|grep -q 'SI:localuser:oper'; then
+        xhost +SI:localuser:oper >/dev/null
+    fi
+    sudo -u oper -i "$@"
+fi
+```
+
+. Execute:
++
+    chmod a+rx /usr/local/bin/oper_account
+
+. Create the following file:
+
++
+./usr/local/bin/oper_x11
+[source,bash]
+```
+set -e
+
+if [ $USER = "prog" ]; then
+  echo "ERROR: Cannot promote to oper from $USER account. Promote from $SUDO_USER instead."
+  exit 1
+elif [ $USER = "oper" ]; then
+  echo "ERROR: Already in $USER account."
+  exit 1
+fi
+
+if tty|grep -q ^/dev/tty ;then
+    export AUID_PROMOTE_ACCOUNT=oper
+    startx >/dev/null 2>&1
+else
+    echo "Only text console users are allowed to run the X server, use 'oper_account'."
+fi
+```
+
+. Execute:
++
+    chmod a+rx /usr/local/bin/oper_x11
+
+. [[bashrc]]<<bashrc,.bashrc>>: Add this to the following file:
+
++
+.~oper/.bashrc
+[source,bash]
+```
+#
+# include AUID user's .bashrc_SUDO_USER
+if [ -n "$SUDO_USER" ]; then
+    if [ -f "$HOME/.bashrc_$SUDO_USER" ]; then
+        . "$HOME/.bashrc_$SUDO_USER"
+    fi
+fi
+```
++
+
+This provides a way to run a _bash_ script (if present) to apply
+customizations for the _sudo_ user for non-login shells. This script
+is also run for login shells; see the <<profile,.profile>> step above.
+
+To execute the six numbered steps above for _oper_ and _prog_ and the
+first three for _root_ (for the latter only those three are needed),
+enter:
+
+....
+~/fsl11/AUID/install_AUID
+....
+
+The script will also set _~oper_ and _~prog_ directories to be
+readable and searchable by _other_ users. This will allow AUID users
+to access their customization scripts (and allow all users to read the
+parts of the directories they have read access to), which will be
+owned by them,
+
+The _oper_account_, _prog_account_, and _root_account_ scripts can be
+used to promote any AUID session that is enabled in _/etc/sudoers_ to
+those accounts. If the <<Additional remediations>> have been applied,
+the _oper_x11_ and _prog_x11_ scripts can be used on a text console to
+start an X11 session _and_ promote.
+
+[NOTE]
+====
+
+If the <<Additional remediations>> have been applied, the process to
+run X11 applications (e.g., _nm-connection-editor_) as _root_ depends
+on how you logged in. You must login with an AUID account that is
+enabled in _/etc/sudoers_ to promote to _root_.
+
+* If you logged in remotely with _ssh_ using an AUID account, use the
+_root_account_ script to run the application, e.g.:
+
+ root_account nm-connection-editor
+
++
+
+Or, just promote to _root_ with the _root_account_ script, then run
+the application.
+
++
+
+This assumes you have an _Xserver_ running on the computer you
+connected from.  Simply using _sudo_ to run the application from an
+AUID account will not work because the _.Xauthority_ file is not
+properly set for _root_ until the _root_account_ script has been used
+in the AUID session.
+
+* If you logged in on a local text console with an AUID account, first
+start the GUI with _startx_, then in an _xterm_ window run the
+application with, e.g.:
+
+ root_account nm-connection-editor
+
++
+
+Or, in an _xterm_, just promote to _root_ with the _root_account_
+script, then run the application.
+
+====
+
+=== Adding AUID accounts
+
+This subsection describes how to add AUID accounts to be used with the
+ability to promote to _oper_, _prog_, and _root_ as described in the
+previous subsection. The method described here uses _dhorsley_ as an
+example AUID account name.
+
+. Add the user account:
+
+    adduser dhorsley --home /usr2/dhorsley
+
++
+
+Enter a suitable password when prompted and confirm it. Answer all
+other questions with kbd:[Enter].
+
++
+
+IMPORTANT: If you are configuring a _spare_ system, you will need to
+make sure the same accounts and groups for the owners of files on
+_/usr2_ exist on both systems (but the UIDs and GIDs don't need to be
+the same) for the system-to-system backup of _/usr2_ to work properly.
+
++
+
+[NOTE]
+====
+
+For normal operations, AUID users' home directories should be on
+_/usr2_. However, for some maintenance accounts, it may make sense to
+have the home directory some where else, typically on _/home_. In that
+case, use this command instead:
+
+    adduser dhorsley
+
+The step for setting the contents of the home directory below will
+need to be adjusted accordingly; see the <<note,NOTE>> farther below.
+
+====
+
+. Add the user to these groups as appropriate, e.g.:
+
++
+
+NOTE: This step assumes that the _operators_ and _programmers_ groups
+have been created as described in the previous subsection
+<<Enabling user promotion to oper/prog and root>>.
+
++
+    adduser dhorsley operators
++
+
+and/or:
+
++
+    adduser dhorsley programmers
+
+. If the user should be able to manage printers, use:
+
+    adduser dhorsley lpadmin
+
+. If the user is allowed to elevate to _root_, use _visudo_ to add:
+
+    dhorsley       ALL=(root) ALL
+
+. If the account will be used by an operator and/or programmer with
+the GUI, the X11 environment needs to be set-up. The following command
+will move an existing _/usr2/dhorsley_ to _/usr2/dhorsley.FSL11COPY_
+and create a new _/usr2/dhorsley_ with useful skeleton files (you will
+be prompted for the account name):
+
+ ~/fsl11/AUID/AUID_update
+
++
+
+It will also create _~oper/.profile_dhorsley_,
+_~oper/.bashrc_dhorsley_, _~prog/.profile_dhorsley_, and
+_~prog/.bashrc_dhorsley_ scripts for per AUID user customization of
+_oper_ and _prog_ sessions. The initial versions of these files just
+print a message as a reminder that they are being used, e.g.:
+
++
+.~oper/.profile_dhorsley
+[source,bash]
+```
+echo "Applying customizations from ${BASH_SOURCE}"
+```
+
++
+.~oper/.bashrc_dhorsley
+[source,bash]
+```
+echo "Applying customizations from ${BASH_SOURCE}"
+```
+
++
+
+For information on customizing these files and FS window placement for
+AUID users, please see the <<auid_customization.adoc#,AUID Account
+Customization>> document.
+
++
+[NOTE]
+====
+
+[[note]]<<note,NOTE>>: If the user's home directory is not on _/usr2_,
+but is for example on _/home_, the following commands should be used
+instead:
+
+    cd /home
+    mv dhorsley dhorsley.FSL11COPY
+    cd ~/fsl11/AUID/skel
+    find . -print|cpio -pmdu /home/dhorsley
+    chown -R dhorsley.dhorsley /home/dhorsley
+    chmod 0750 /home/dhorsley
+
+No _oper_/_prog_ customization scripts are included. It is assumed
+that since these accounts aren't on _/usr2_ that they aren't used for
+operations.
+
+====
+
++
+
+. Optionally, to disable shell inactivity time-outs for the AUID
+account, edit their _.bashrc_ file and uncomment the line:
+
+  unset TMOUT
+
+
+. Set default desktop
+
++
+
+To set the correct default desktop (it is remembered per user):
+
+ cat > /var/lib/AccountsService/users/dehorsley <<EOF
+ [User]
+ Language=
+ XSession=default
+ Icon=/usr2/dehorsley/.face
+ SystemAccount=false
+ EOF
+
++
+
+Normally, the GUI login is disabled if the security remediations of
+this document have been applied. If the GUI login is available and you
+have access to the console, an alternative means for setting the
+desktop is:
+
+.. Press kbd:[Ctrl+Alt+F1] to get to the GUI login.
+.. Enter `*dhorsley*` as the `Username`.
+.. Select the "`gear`" icon in the lower right-hand corner.
+.. Select `System X11 Default`.
+.. Complete logging in with the password.
+.. Logout with `exit`.
+
+. If you have previously created a system alias, then follow the
+sub-steps in the <<bashrc_alias,Use the new alias in .bashrc>> step
+(in the <<Setting hostname alias>> section below) for this user.
+
+. If you have _operational_ and _spare_ systems and have already
+installed the _backup_usr2_ script on the _operational_ system, you
+may want to follow the steps in the sub-step <<root_key,Copy root ssh
+key for running backup_usr2>> (in the
+<<Installing backup_usr2 with CIS hardening>> section below) for this
+user.
+
+=== Enable operators group accounts to rotate disks
+
+. Allow _operators_ to use the _sudo_ scripts _rotation_shutdown_
+(with any options) and _refresh_secondary_ (but only with no options
+or with the `-h` or `-p` options individually), by adding
+(respectively) with _visudo_:
+
+   %operators      ALL=(ALL) /usr/local/sbin/rotation_shutdown
+   %operators      ALL=(ALL) /usr/local/sbin/refresh_secondary ""
+   %operators      ALL=(ALL) /usr/local/sbin/refresh_secondary -h
+   %operators      ALL=(ALL) /usr/local/sbin/refresh_secondary -p
+
++
+
+NOTE: A user who can elevate to _root_ will be able to run
+_refresh_secondary_ with any options if they use _sudo_ explicitly.
+
+. Install _AUID_ scripts to allow `operators` group accounts to run
+the _sudo_ scripts without explicitly entering _sudo_:
+
+  ~/fsl11/AUID/install_RAID
+
++
+
+[NOTE]
+====
+
+The scheme here uses scripts that are run with _sudo_ (the so-called
+_sudo scripts_) for steps that require elevated privileges. These are
+installed in _/usr/local/sbin_. For ease of use with the `operators`
+group (typically AUID) accounts, additional scripts (the so-called
+_AUID scripts_) with the same names that run the _sudo_ scripts are
+installed in _/usr/local/bin_. The AUID scripts verify that the _oper_
+and _prog_ accounts are not in use before running the _sudo_ versions
+with _sudo_. This cuts down on error messages from _sudo_ and saves
+AUID users from needing to enter _sudo_.
+
+This works for _root_ (and _sudo_) users because _/usr/local/sbin_
+appears before _/usr/local/bin_ in users' `PATH` variables. It works
+for non-_root_ (and non-_sudo_) users because the versions in
+_/usr/local/sbin_ are only executable by _root_.
+
+====
+
+=== Setting hostname alias
+
+These steps set a more user friendly alias for the systems of the form
+_fs1-<xx>_ and _fs2-<xx>_ where _<xx>_ is the station's two letter
+code. This provides a compact alias for local usage, even for sites
+with more than one system, and makes the system identifiable for
+remote users in a systematic way. Except as noted below, these steps
+should be executed for both the _operational_ and _spare_ systems.
+
+
+. Edit _/etc/hosts_ and add the new aliases to the appropriate lines.
+
++
+
+If you have two systems, add the aliases for both to the file on each
+system.
+
+. Create a file _/etc/hostname_alias_ that contains the new alias.
+.. Execute
++
+    cd /etc
+    cp hostname hostname_alias
+    chmod a+r hostname_alias
+
+.. Edit the new file and change the contents to the new alias.
+. Change the system's mailname
++
+
+NOTE: To allow mail to _mailman_ mail lists to work, you may need to
+make a use a fake FQDN name, perhaps by appending _.net_ to your
+alias, for use in _/etc/mailname_ and
+_/etc/exim4/update-exim4.conf.conf_. The two files should be
+consistent.
+
++
+.. Edit the file _/etc/mailname_ and change its contents to the new
+name, without a domain name unless that is required by remote mail
+hosts or mail lists. If so,
+<<installation.adoc#_generate_fqdn_in_helo_for_outgoing_mail,Generate FQDN in HELO for outgoing mail>>
+in the FSL11 Installation document may also be helpful.
+
+.. Edit _/etc/exim4/update-exim4.conf.conf_, change the value of
+`dc_other_hostnames=` to the new alias
+
+.. Execute
++
+     update-exim4.conf
+     systemctl restart exim4
+
+. [[bashrc_alias]]<<bashrc_alias,Use the new alias in .bashrc>>:
+Except for the _sysadmin_'s AUID account (unless they want it) set
+user prompts and _xterm_ titles for _oper_, _prog_, and all AUID
+accounts. In each _.bashrc_ file to be changed:
+
+.. Before the `if` block that sets `PS1` add:
+
+    hostalias_file=/etc/hostname_alias
+    if [[ -f "$hostalias_file" ]]; then
+        hostalias=$(cat $hostalias_file)
+    else
+        hostalias=$(hostname)
+    fi
+
+.. In the two statements setting `PS1` in the `if` block, change the
+use of `\h` to `$hostalias`.
+
+.. In the statement setting `PS1` in the `case` block that sets the
+_xterm_ window title, change the use of `\h` to `$hostalias`.
+
+.. Unless the _sysadmin_ wants to use the alias, copy the following
+lines from their AUID _.bashrc_ file:
+
++
+```
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+```
+
++
+
+and add them to the end of their _~oper/.bashrc_SUDO_USER_ and
+_~prog/.bashrc_SUDO_USER_ files.
+
+. If you have previously installed _refresh_spare_usr2_ and have now
+updated the _operational_ system alias, then on the _spare_ system:
+
+.. Update _/usr/local/sbin/refresh_spare_usr2_ to use the new alias of
+the _operational_ system for the `remote_node` variable.
+
+.. You will need to make the new alias for the _operational_ system be
+recognized as a _known host_ for the _root_ account on the _spare_
+system. You can do that, as _root_, by using:
+
++
+
+[subs="+quotes"]
+----
+ssh-keyscan -H _operational_ >>~/.ssh/known_hosts
+----
+
++
+
+where `_operational_` is the value you used for the `remote_node`
+variable in the _refresh_spare_usr2_ script.
+
++
+
+. If you have previously installed _backup_usr2_ and have now updated
+the _spare_ system alias, then on the _operational_ system:
+
+.. Update _/usr/local/sbin/backup_usr2_ to use the new alias of
+the _spare_ system for the `remote_node` variable.
+
+.. You will need to make the new alias for the _spare_ system be
+recognized as a _known host_ for the _root_ account on the
+_operational_ system. You can do that, as _root_, by:
+
++
+
+[subs="+quotes"]
+----
+ssh-keyscan -H _spare_ >>~/.ssh/known_hosts
+----
+
++
+
+where `_spare_` is the value you used for the `remote_node` variable
+in the _backup_usr2_ script.
+
++
+
+TIP: Not performing this step will just require answering `*yes*` to a
+prompt to accept the _spare_ machine fingerprint on the next use of
+_backup_usr2_.
+
+=== Installing backup_usr2 with CIS hardening
+
+Foe CIS hardened systems, the _backup_usr2_ script is used on the
+_operational_ system to backup its _/usr2_ partition to the _spare_
+system. To do this, it invokes _refresh_spare_usr2_ on the _spare_
+system. This is useful if to want the _spare_ system to be a
+reasonably up-to-date backup system for operations. All steps for
+installation must be performed as _root_ on the specified system. You
+should read all of the procedure before using it.
+
+TIP: Read the introduction of the
+<<raid.adoc#_refresh_spare_usr2,refresh_spare_usr2>> section of the
+<<raid.adoc#,RAID Notes for FSL11>> document for important information
+on the __refresh_spare_usr2__ script.
+
+NOTE: Please see the *NOTE* in the
+<<Enable operators group accounts to rotate disks>> step in this
+appendix for an explanation of how the so-called _sudo_ and AUID
+scripts, also used here, interact.
+
+. On the _operational_ system:
+
+.. Create _spare_ account. Execute:
+
++
+
+----
+adduser spare
+----
+
++
+
+Enter a suitable password when prompted and confirm it. Answer all
+other questions with kbd:[Enter].
+
++
+
++
+
+NOTE: The user's home directory is on _/home_ (by default), not
+_/usr2_.
+
+. On the _spare_ system:
+
+.. Make sure the _operational_ system is represented in the
+_/etc/hosts_ file.
+
++
+
+If it is not already there, add it. It is recommended that it be given
+a simple alias for routine use.
+
+.. Install the _sudo_ script _refresh_spare_usr2_:
+
+... Move the script into position:
+
+  ~/fsl11/RAID/install_refresh_spare_usr2
+
+... Customize _/usr/local/sbin/refresh_spare_usr2_, following the
+directions in the comments in the script (repeated here):
+
+.... Comment-out the lines (add leading ``#``s):
+
++
+
+....
+echo "This script must be customized before use.  See script for details."
+exit 1
+....
+
+.... Change the `operational` in the line:
+
++
+
+....
+remote_node=operational
+....
+
++
+
+to the alias (preferred), FQDN, or IP address of your _operational_
+system.
+
+.... Uncomment the line for CIS hardened systems. The commented out
+form is:
+
++
+
++
+
++
+
+....
+#remote_user=spare
+....
+
+... For _operators_, Enable running the _sudo_ script with either no
+options or just `-h`. Use _visudo_ to add:
+
++
+
++
+
+....
+%operators         ALL=(ALL) /usr/local/sbin/refresh_spare_usr2 ""
+%operators         ALL=(ALL) /usr/local/sbin/refresh_spare_usr2 -h
+....
+
+.. Create a key for _root_:
+
++
+
+If _root_ already has a key, you should skip this sub-step.
+
++
+
+CAUTION: Your should _not_ set a passphrase.
+
+ ssh-keygen
+
+.. Copy the key:
+
++
+
+[subs="+quotes"]
+----
+ssh-copy-id spare@_operational_
+----
+
++
+
+where `_operational_` is the value you used for the `remote_node`
+variable in the _refresh_spare_usr2_ script.
+
++
+
+NOTE: You may need to accept the fingerprint of the _operational_
+system if this is the first time _root_ has connected to it.
+
++
+
+. On the _operational_ system:
+
+.. Set the _spare_ account to only allow a _forced command_ with _ssh_
+by replacing the `ssh-rsa` at the start of the first (and only) line of
+_~spare/.ssh/authorized_keys_ line with:
+
++
+
+`command="sudo --preserve-env rrsync -ro /usr2" ssh-rsa`
+
++
+
++
+
++
+
+TIP: If your _spare_ system is registered with DNS, you can provide
+some additional security by adding ``from="__node__" `` {nbsp}(note
+the trailing space) at the start of the line, where `__node__` is the
+FQDN or IP address of the _spare_ system.  It may be necessary to
+provide the FQDN, IP address, and/or alias of the _spare_ system in a
+comma separated list in place of  `__node__` to get reliable
+operation.
+
+.. Setup the _spare_ account to run _rrsync_ with _sudo_ with a
+password (which will make _refresh_spare_usr2_ fail unless it is used
+with the procedure in the <<Using backup_usr2 with CIS hardening>>
+section below) and with passing environment variables. Use _visudo_ to
+add:
+
++
+
++
+
+....
+spare          ALL=(ALL) SETENV: /usr/bin/rrsync
+....
+
+.. Setup _sudo_ on the _operational_ machine to allow `operators` to
+run the _backup_usr2_ script with:
+
+   %operators      ALL=(ALL) /usr/local/sbin/backup_usr2
+
+.. Install the _sudo_ script _backup_usr2_:
+
+... Move the script into position:
+
+ ~/fsl11/RAID/install_backup_usr2
+
+... Customize _/usr/local/sbin/backup_usr2_ following the directions
+in the comments in the script (repeated here):
+
+.... Comment-out the lines (add leading ``#``s):
+
++
+
+....
+echo "This script must be customized before use.  See script for details."
+exit 1
+....
+
+.... Change the `spare` in the line:
+
++
+
+....
+remote_node=spare
+....
+
++
+
++
+
++
+
+to the alias (preferred), FQDN, or IP address of your _spare_ system.
+
+.. Install the AUID script that runs the _sudo_ script:
+
+ ~/fsl11/AUID/install_backup_usr2
+
+.. Lock-out the _spare_ account from normal login (but it must have a
+shell). This will disable password login, but not _ssh_ login with
+keys, for this account. Execute:
+
++
+
+----
+usermod -L spare
+----
+
+.. Disable password aging and account inactivity expiration for the
+_spare_ account. Execute:
+
++
+
++
+
+----
+chage -I -1 -M -1 spare
+----
+
+.. Make the _spare_ system a _known host_ to the _root_ account.
+
++
+
+[subs="+quotes"]
+----
+ssh-keyscan -H _spare_ >>~/.ssh/known_hosts
+----
+
++
+
+where `_spare_` is the value you used for the `remote_node` variable
+in the _backup_usr2_ script.
+
++
+
+TIP: Not performing this step will just require the prompt to be
+answered on the first use of _backup_usr2_.
+
+.. [[root_key]]<<root_key,Copy root ssh key for running backup_usr2>>:
+
++
+
+For each AUID account on the _operational_ system that will use
+_backup_usr2_, copy the _ssh_ key from _root_ on the _operational_
+system to the AUID account on the _operational_ system. The AUID
+account must have been created on both systems before using this
+method.
+
+.... Create a key:
+
++
+
+If the _root_ account already has a key, you should skip this step.
+
++
+
+CAUTION: Your should _not_ set a passphrase.
+
++
+
+[subs="+quotes"]
+----
+ssh-keygen
+----
+
+.... Copy the key to to the _authorized_keys_ for each AUID user that
+will use _backup_usr2_.
+
++
+
+NOTE: The first command below will generate an error `File exists` if
+the directory already exists. That is benign and can be ignored.
+
++
+
+[subs="+quotes"]
+----
+cd ~_AUID_
+mkdir .ssh
+cat /root/.ssh/id_rsa.pub >>~.ssh/authorized_keys
+chown -R _AUID_._AUID_ .ssh
+----
+
++
+
+where `_AUID_` is the AUID account that will use _backup_usr2_.
+
++
+
++
+
+NOTE: The key now stored in the AUID account on the _operational_
+system will be copied to that account on the _spare_ system the next
+time _backup_usr2_ is run. Until then, any user would need to enter
+their password to connect to the _spare_ system when running
+_backup_usr2_.
+
+=== Using backup_usr2 with CIS hardening
+
+To use _backup_usr2_ as part of a monthly backup, you first should
+perform a disk rotation on both systems.  The disk rotation procedure
+is described in the <<raid.adoc#_disk_rotation,Disk rotation>> section
+of the <<raid.adoc#,RAID Notes for FSL11>> document. You should start
+a disk rotation on the __spare__ system (e.g., __fs2__) first. Once
+this is successfully refreshing, log out of the __spare__ system. Then
+start a disk rotation running on the __operational__ system (e.g.,
+__fs1__).  Once that is successfully refreshing, don't log out.
+Proceed directly to the instructions below.
+
+You can also use the procedure below to "`freshen`" the _/usr2_ on the
+_spare_ system at other times.
+
+NOTE: For CIS hardened systems, the _backup_usr2_ script is used on
+the _operational_ system to backup its _/usr2_ partition to the
+_spare_ system. To do this, it invokes _refresh_spare_usr2_ on the
+_spare_ system.
+
+. Start with no one logged into either system.
+
++
+
+[IMPORTANT]
+====
+
+Before proceeding, make sure that no one is logged into either system
+and that no processes are running on _/usr2_ on either system,
+particularly the FS.
+
+TIP: If the only session logged on the systems is the AUID session you
+used to start the disk refresh on the _operational_ system, and there
+is no other activity on _/usr2_, you can use that session in the
+directions below without logging out first.
+
+====
+
+. On the _operational_ system:
+
+.. Login to your AUID account if you aren't already logged in.
+
+.. Run:
+
+ backup_usr2
+
++
+
+NOTE: You may be prompted for your AUID password on the _operational_
+system in order to run the script if it has been more than 15 minutes
+since you used _sudo_ in that session, e.g., to start a refresh.
+
++
+[NOTE]
+====
+
+You may be prompted for your AUID password for the _spare_ system in
+order to connect to that system.
+
+TIP: You can eliminate this password prompt by copying the _ssh_ key
+from the _root_ account on the _operational_ system to your AUID
+account on the _spare_ system (and to the _operational_ system). See
+the sub-step <<root_key,Copy root ssh key for running backup_usr2>> in
+the <<Installing backup_usr2 with CIS hardening>> section above for
+instructions.
+
+====
+
++
+
+The _refresh_spare_usr2_ script will be run on the _spare_ system
+automatically.
+
++
+
+NOTE: You will be prompted for your AUID password for the _spare_
+system in order to run _refresh_spare_usr2_ on that system with
+_sudo_. It is not possible to eliminate this prompt.
+
++
+
++
+
+Answer the question `*y*` if it is safe to proceed.
+
+. Log out of the _operational_ system.
+
+. Wait until the _refresh_spare_usr2_ script on the _spare_ system
+has finished before logging in again and resuming other activities on
+the systems.
+
++
+
+This step (and procedure) continues at the <<raid.adoc#wait, Wait>>
+step in the <<raid.adoc#_using_refresh_spare_usr2,Using
+refresh_spare_usr2>> subsection of the
+<<raid.adoc#_refresh_spare_usr2,refresh_spare_usr2>> subsection of the
+<<raid.adoc#,RAID Notes for FSL11>> document.

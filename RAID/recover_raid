@@ -1,0 +1,138 @@
+#!/bin/bash
+#
+# Copyright (c) 2020, 2023, 2025 NVI, Inc.
+#
+# This file is part of FSL11 Linux distribution.
+# (see http://github.com/nvi-inc/fsl11).
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+# Recover any failed and/or missing devices back into an active RAID
+
+set -e
+
+usage() {
+	echo "Usage: $0 [-p]"
+	echo -e "  where\t-h\tdisplay this help and exit"
+	echo -e "  \t-p\tdisplay progress meter while recovering"
+}
+
+PROGRESS_METER=0
+while getopts "hp" arg; do
+	case $arg in
+		p)
+			PROGRESS_METER=1
+			;;
+		h | *)
+			usage
+			exit 0
+			;;
+	esac
+done
+ARG1=${@:$OPTIND:1}
+if [ "$ARG1" ]; then
+	raid="/dev/$ARG1"
+else
+	raid=/dev/md0
+fi
+
+if [ ! -b $raid ]; then
+	echo "ERROR: RAID $raid does not exist!!"
+	exit 1
+fi
+
+if mdadm --detail $raid 2>&1 | grep -qE ": (clean|active) $" ; then
+	echo "ERROR: RAID $raid does not need recovery!!"
+	exit 1
+fi
+
+if ! mdadm --detail $raid 2>&1 | grep -q ", degraded $" ; then
+	echo "ERROR: RAID $raid is not in a recoverable state"
+	exit 1
+fi
+
+# If there are still sufficient devices available, re-adding 'failed' should do the trick
+if [ $(mdadm -D $raid | grep "Raid Devices" | cut -d':' -f2) -eq $(mdadm -D $raid | grep "Total Devices" | cut -d':' -f2) ]; then
+	# This should always be safe as any faulty device must be in this RAID set already
+	echo "Re-adding failed device(s) to RAID array $raid ... "
+	mdadm $raid --re-add failed
+else
+	# Some devices are missing
+	UUID=$(mdadm -D $raid -Y | grep "MD_UUID" | cut -d'=' -f2)
+	# Find an active device to compare against
+	for device in $(ls /dev/sd*[0-9]); do
+		mdadm -D $raid | grep "active sync" | grep -q $device && active=$device
+	done
+	missing=""
+	# Compare the status of each 'missing' device against the active one
+	for device in $(ls /dev/sd*[0-9]); do
+		# Only devices from the same RAID will be considered
+		if ! mdadm -D $raid | grep -q $device && mdadm -E $device | grep -q $UUID; then
+			if [ $(mdadm -EY $active | grep TIME | cut -d'=' -f2) -lt $(mdadm -EY $device | grep TIME | cut -d'=' -f2) ]; then
+				echo "ERROR: Missing device $device TIME is ahead of active device $active"
+				exit 1
+			fi
+			if [ $(mdadm -EY $active | grep EVENTS | cut -d'=' -f2) -lt $(mdadm -EY $device | grep EVENTS | cut -d'=' -f2) ]; then
+				echo "ERROR: Missing device $device EVENT count is higher than active device $active"
+				exit 1
+			fi
+			if mdadm -E $device | grep "Array State" | cut -d':' -f2 | cut -d' ' -f2 | grep -q [.]; then
+				echo "ERROR: Missing device $device has been used separately since last in sync"
+				exit 1
+			fi
+			missing="$missing $device"
+		fi
+	done
+	if [ -z "$missing" ]; then
+		echo "ERROR: No \"missing\" devices available to be re-added to $raid"
+		exit 1
+	fi
+	# All 'missing' devices check out as OK so it should be relatively safe to proceed
+	echo "Re-adding missing device(s) to RAID array $raid ... "
+	mdadm $raid --re-add missing
+fi
+
+mdadm --detail $raid; echo
+count=10;
+while : ; do
+	echo  -n -e "\rWaiting up to $count seconds for RAID $raid to start rebuilding ... "
+	sleep 1
+	if  mdadm --detail $raid | grep -q ", recovering $"; then
+           break
+	fi
+	count=$((count-1))
+	if [ $count -le 0 ]; then
+		echo -e "\nERROR: RAID $raid failed to start rebuilding"
+		exit 1
+	fi
+done
+
+if [ "$PROGRESS_METER" -ne 0 ]; then
+	echo "(This may safely be interrupted with 'Control-C' if you don't want to wait)"
+	while ! grep -q recovery /proc/mdstat; do
+		echo "Waiting for recovery ... "
+		sleep 1;
+	done
+#
+	while grep -q recovery /proc/mdstat; do
+		recovery=$(grep recovery /proc/mdstat | cut -c32-)
+		echo -e -n "\r$recovery"
+		sleep 1;
+	done
+	echo -e "\ndone."
+else
+	echo -e "\nRAID $raid is now in the process of rebuilding."
+	echo "You can check on the recovery progress with 'mdstat'."
+fi

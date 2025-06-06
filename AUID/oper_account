@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# Copyright (c) 2020, 2023 NVI, Inc.
+#
+# This file is part of FSL11 Linux distribution.
+# (see http://github.com/nvi-inc/fsl11).
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+set -e
+
+if [ "$USER" = "prog" ]; then
+  echo "ERROR: Cannot promote to oper from $USER account. Promote from $SUDO_USER instead."
+  exit 1
+elif [ "$USER" = "oper" ]; then
+  echo "ERROR: Already in $USER account."
+  exit 1
+fi
+
+if [ -z ${DISPLAY+x} ]; then
+#   no DISPLAY set
+    sudo -u oper -i "$@"
+elif echo $DISPLAY |grep -q localhost; then
+#   remote user
+    sudo -u oper XCOOKIE="$(xauth list $DISPLAY)" -i "$@"
+else
+#   on console X server
+    if ! xhost|grep -q 'SI:localuser:oper'; then
+        xhost +SI:localuser:oper >/dev/null
+    fi
+    sudo -u oper -i "$@"
+fi

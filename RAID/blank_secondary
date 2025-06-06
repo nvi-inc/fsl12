@@ -1,0 +1,319 @@
+#!/bin/bash
+#
+# Copyright (c) 2020, 2023 NVI, Inc.
+#
+# This file is part of FSL11 Linux distribution.
+# (see http://github.com/nvi-inc/fsl11).
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+# For systems with GPT LVM RAID arrays, tries to reset everything on second disk
+
+usage() { echo "Usage: $0 [-A][-h]"; echo -e "  where\t-A\tAllow \"Secondary\" disk to be loaded at start or alternatively\n\t\t\tto be too small to contain the current RAID"; echo -e "  \t-h\tdisplay this help and exit"; }
+
+ACCEPT_LOAD=0
+DRY_RUN=0
+VERBOSE=0
+COUNT=
+while getopts "AnvZh" arg; do
+	case $arg in
+		A)
+			ACCEPT_LOAD=1
+			;;
+		n)
+			DRY_RUN=1
+			;;
+		v)
+			VERBOSE=1
+			;;
+		Z)
+			if [ -z $COUNT ]; then
+				COUNT=2048
+			else
+				COUNT=$(( $COUNT * 2 ))
+			fi
+			;;
+		h | *)
+			usage
+			exit 0
+			;;
+	esac
+done
+
+[ $DRY_RUN -eq 0 ] || echo -e "\n!! NB: running in DRY RUN mode ie. no action will actually be taken !!\n"
+
+lockf=/tmp/.accept_load
+
+SDA=$(basename $(ls -l /sys/block/sd* | cut -d'>' -f2 | grep /ata | sort | head -n 1))
+
+# Now get the user to load the Secondary disk
+SDB=$(basename $(ls -l /sys/block/sd* | cut -d'>' -f2 | grep /ata | sort | head -n 2 | tail -n 1))
+
+if [ $SDB != $SDA ] && [ -b /dev/$SDB ] && [ $ACCEPT_LOAD == 0 ] && ([ ! -O $lockf ] || [ "$(cat $lockf)" != "$(lsblk --nodeps -no serial /dev/$SDB)" ]); then
+	echo "ERROR:\"Secondary\" disk /dev/$SDB must not be loaded before start of script"
+	echo "(You may want to use the '-A' option to [A]llow if this is intentional)"
+	exit 1
+fi
+if [ $SDB == $SDA ] || [ ! -b /dev/$SDB ]; then
+	while [ $SDB == $SDA ] || [ ! -b /dev/$SDB ]; do
+		echo  -n -e "\rWaiting for \"Secondary\" disk to be loaded, use 'Control-C' to safely abort ... "
+		sleep 1
+		SDB=$(basename $(ls -l /sys/block/sd* | cut -d'>' -f2 | grep /ata | sort | head -n 2 | tail -n 1))
+		if [ $SDA != $(basename $(ls -l /sys/block/sd* | cut -d'>' -f2 | grep /ata | sort | head -n 1)) ]; then
+			echo -e "\n\nERROR: Active disk must be in the \"Primary\" slot. Aborting!!"
+			exit 1
+		fi
+	done
+	echo  -n -e "\r                                                                               "
+	echo  -n -e "\rWaiting for disk /dev/$SDB to settle ... "
+	udevadm settle
+	sleep 2
+	echo -n -e "\r                                         \r"
+fi
+echo $(lsblk --nodeps -no serial /dev/$SDB) > $lockf
+
+if $(grep "/boot/efi" /proc/mounts | grep -q "/dev/$SDB"); then
+	# Ensure the secondary disk is not mounted on /boot/efi (mount primary instead)
+	[ $DRY_RUN -eq 0 ] && umount /boot/efi
+	[ $DRY_RUN -eq 0 ] && mount /dev/"$SDA"1 /boot/efi
+fi
+
+# Perform sanity checks on secondary disk now that it's available
+if mdadm --detail /dev/md0 | grep -q /dev/$SDB; then
+	echo "ERROR: \"Secondary\" disk /dev/$SDB is currently part of RAID /dev/md0!!"
+	exit 1
+fi
+if grep -q ^/dev/$SDB /proc/mounts; then
+	echo "ERROR: Some part of \"Secondary\" disk /dev/$SDB is mounted!!"
+	exit 1
+fi
+if [ $ACCEPT_LOAD == 0 ] && [ $(cat /sys/block/md0/size) -gt $(cat /sys/block/$SDB/size) ]; then
+	echo "ERROR: \"Secondary\" device $SDB is too small to house RAID /dev/md0"
+	echo "(You may want to use the '-A' option to [A]llow if required)"
+	exit 1
+fi
+if [ "$(cat /sys/block/$SDB/removable)" != "0" ]; then
+	echo "WARNING: \"Secondary\" disk /dev/$SDB is removable:"
+	echo -n " /dev/"$SDB": "$(lsblk --nodeps -no tran /dev/$SDB | tr [:lower:] [:upper:])
+	echo -n " "$(lsblk --nodeps -no type /dev/$SDB)
+	echo -n ", model" $(lsblk --nodeps -no model /dev/$SDB)
+	echo ", s/n "$(lsblk --nodeps -no serial /dev/$SDB)
+fi
+
+if [ $VERBOSE -eq 0 ]; then
+	echo -n "Are you sure you wish to blank \"Secondary\" disk /dev/$SDB (y=yes, n=no)? "
+	badans=true
+	while [ "$badans" = "true" ]; do
+		read ans
+		case "$ans" in
+		y|yes)	badans=false
+			;;
+		n|no)	echo -e "Aborting."
+			exit 0
+			;;
+		*)	echo -e "Please answer with y=yes or n=no : \c"
+		esac
+	done
+fi
+
+for part in $(cd /dev/;ls -f "$SDB"?* $SDB 2>/dev/null); do
+	partnum=$(echo $part | sed -e "s/$SDB//")
+	# Make sure any (foreign) RAID arrays are assembled
+	if mdadm -b --examine /dev/$part 2>&1 | grep -q ARRAY ; then
+		if [ $VERBOSE -ne 0 ]; then
+			mdadm --incremental /dev/$part 2>/dev/null
+		else
+			mdadm --incremental /dev/$part >/dev/null 2>&1
+		fi
+	fi
+	[ $VERBOSE -ne 0 ] && [ ! -z $partnum ] && sgdisk -i$partnum /dev/$SDB | head -n 1
+	raid=$(grep "$part\[" /proc/mdstat | cut -d' ' -f1)
+	if [ "$raid" = "md0" ]; then 
+		# Belt _and_ braces!
+        	echo "ERROR: \"Secondary\" disk /dev/$SDB is currently part of RAID /dev/md0!!"
+		exit 1
+	elif [ ! -z $raid ]; then
+		if grep ^"$raid" /proc/mdstat | grep -q " $SDA"; then
+        		echo -n "ERROR: \"Primary\" disk /dev/$SDA is in a common RAID array: "
+			mdadm --detail --scan /dev/$raid
+			exit 1
+		fi
+		# Part of a foreign RAID volume
+		if [ $VERBOSE -ne 0 ]; then
+			echo -n "Detected /dev/$part in \"foreign\" RAID array: "
+			mdadm --detail /dev/$raid
+		fi
+		[ $VERBOSE -ne 0 ] && echo "Scanning /dev/$raid partitions (if any):"
+		for rprt in $(cd /dev/;ls -f "$raid"p?* $raid 2>/dev/null); do
+			if pvdisplay /dev/$rprt 2>/dev/null | grep -q "/dev/$rprt" ; then
+				VG=$(pvs --noheadings -o vg_name /dev/$rprt 2>/dev/null | tr -d " ")
+				VG_UUID=$(pvs --noheadings -o vg_uuid /dev/$rprt 2>/dev/null | tr -d " ")
+				LVS=$(pvs --noheadings -o lv_name /dev/$rprt 2>/dev/null | tr -d " " | sort -u)
+				if [ $VERBOSE -ne 0 ]; then
+					echo "Detected an LVM physical volume: /dev/$rprt"
+					pvdisplay /dev/$rprt
+					echo -n "Which contains LV(s):"
+					for lv in $LVS; do
+						echo -n " $VG/$lv"
+					done; echo
+					if [ "$rprt" != "$raid" ]; then
+						echo -n "Delete RAID partition $rprt LVM contents (Control-C aborts)? "
+					else
+						echo -n "Delete RAID LVM contents (Control-C aborts)? "
+					fi
+					read $ans
+					[ $DRY_RUN -eq 0 ] && lvremove -v -f -S vg_uuid=$VG_UUID
+					[ $DRY_RUN -eq 0 ] && vgremove -v -f -S vg_uuid=$VG_UUID
+					[ $DRY_RUN -eq 0 ] && pvremove -v -ff -y /dev/$rprt
+				else
+					[ $DRY_RUN -eq 0 ] && lvremove -f -S vg_uuid=$VG_UUID > /dev/null 2>&1
+					[ $DRY_RUN -eq 0 ] && vgremove -f -S vg_uuid=$VG_UUID > /dev/null 2>&1
+					[ $DRY_RUN -eq 0 ] && pvremove -ff -y /dev/$rprt > /dev/null
+				fi
+			elif [ $VERBOSE -ne 0 ]; then
+				if [ "$rprt" != "$raid" ]; then
+					echo "Detected RAID partition /dev/$rprt:"
+					file -bs /dev/$rprt
+					echo -n "Delete RAID partition contents (Control-C aborts)? "
+				else
+					echo "Detected RAID device /dev/$rprt:"
+					file -bs /dev/$rprt
+					echo -n "Delete RAID contents (Control-C aborts)? "
+				fi
+				read $ans
+				[ $DRY_RUN -eq 0 ] && wipefs -a /dev/$rprt
+			else
+				[ $DRY_RUN -eq 0 ] && wipefs -aq /dev/$rprt > /dev/null
+			fi
+		done
+		if [ $VERBOSE -ne 0 ]; then
+			[ $DRY_RUN -eq 0 ] && mdadm -S /dev/$raid
+			[ $DRY_RUN -eq 0 ] && mdadm --zero-superblock --force /dev/$part 2>/dev/null
+		else
+			[ $DRY_RUN -eq 0 ] && mdadm -S /dev/$raid > /dev/null 2>&1
+			[ $DRY_RUN -eq 0 ] && mdadm --zero-superblock --force /dev/$part >/dev/null 2>&1
+		fi
+	else
+		# Standalone partition or part of a local RAID volume
+		if [ $VERBOSE -ne 0 ] && [ ! -z $partnum ] && [ ! -z "$(sgdisk -i$partnum /dev/$SDB | grep 'BIOS boot')" ]; then
+			echo "Detected BIOS boot partition: /dev/$part"
+			echo -n "Wipe partition (Control-C aborts)? "
+			read $ans
+		elif [ $VERBOSE -ne 0 ] && [ ! -z $partnum ] && [ ! -z "$(sgdisk -i$partnum /dev/$SDB | grep 'EFI [Ss]ystem')" ]; then
+			echo "Detected EFI system partition: /dev/$part"
+			echo -n "Wipe partition (Control-C aborts)? "
+			read $ans
+		elif [ $VERBOSE -ne 0 ] && [ ! -z $partnum ] && [ ! -z "$(sgdisk -i$partnum /dev/$SDB | grep 'Linux filesystem')" ]; then
+			echo "Detected Linux filesystem partition: /dev/$part"
+			tune2fs -l /dev/$part
+			echo -n "Wipe partition (Control-C aborts)? "
+			read $ans
+		elif mdadm -b --examine /dev/$part 2>&1 | grep -q ARRAY ; then
+			OFFSET=$(mdadm --examine /dev/$part | grep "Data Offset"| cut -d':' -f2 | cut -d' ' -f2)
+			BS=$(cat /sys/block/$SDB/queue/physical_block_size)
+			OFFSET=$(( OFFSET * 512 / $BS ))
+			SIZE=1048576		# a megabyte to start with
+			dd if=/dev/$part skip=$OFFSET bs=$BS count=$(($SIZE/$BS)) of=/tmp/lvm_head.$$ 2> /dev/null
+			SIZE=$(pvck --dump headers /tmp/lvm_head.$$ | grep mda_header_1.start | cut -d'.' -f2 | cut -d ' ' -f2)
+			if [ ! -z $SIZE ]; then
+		        	SIZE=$(( $SIZE + $(pvck --dump headers /tmp/lvm_head.$$ | grep mda_header_1.size | cut -d'.' -f2 | cut -d ' ' -f2) ))
+			fi
+			if [ $VERBOSE -ne 0 ]; then
+				echo -n "Detected (unused) RAID component: /dev/$part"
+				mdadm --examine /dev/$part
+				echo "With content"
+			       	file -b /tmp/lvm_head.$$
+				rm -f /tmp/lvm_head.$$
+				echo -n "Delete RAID contents (Control-C aborts)? "
+				read $ans
+				if [ ! -z $SIZE ]; then
+					echo "Erasing $SIZE bytes of LVM metadata ..."
+					[ $DRY_RUN -eq 0 ] && dd if=/dev/zero seek=$OFFSET bs=$BS count=$(($SIZE/$BS)) of=/dev/$part
+				fi
+				[ $DRY_RUN -eq 0 ] && mdadm --zero-superblock --force /dev/$part 2>/dev/null
+			else
+				[ $DRY_RUN -eq 0 ] && [ ! -z $SIZE ] && dd if=/dev/zero seek=$OFFSET bs=$BS count=$(($SIZE/$BS)) of=/dev/$part 2>/dev/null
+				[ $DRY_RUN -eq 0 ] && mdadm --zero-superblock --force /dev/$part > /dev/null 2>&1
+				rm -f /tmp/lvm_head.$$
+			fi
+		elif pvdisplay /dev/$part 2>/dev/null | grep -q "/dev/$part" ; then
+			VG=$(pvs --noheadings -o vg_name /dev/$part 2>/dev/null | tr -d " ")
+			VG_UUID=$(pvs --noheadings -o vg_uuid /dev/$part 2>/dev/null | tr -d " ")
+			LVS=$(pvs --noheadings -o lv_name /dev/$part 2>/dev/null | tr -d " " | sort -u)
+			if [ $VERBOSE -ne 0 ]; then
+				echo "Detected LVM physical volume: /dev/$part"
+				pvdisplay /dev/$part
+				echo -n "Which contains LV(s):"
+				for lv in $LVS; do
+					echo -n " $VG/$lv"
+				done; echo
+				echo -n "Delete LVM contents (Control-C aborts)? "
+				read $ans
+				[ $DRY_RUN -eq 0 ] && lvremove -v -f -S vg_uuid=$VG_UUID
+				[ $DRY_RUN -eq 0 ] && vgremove -v -f -S vg_uuid=$VG_UUID 
+				[ $DRY_RUN -eq 0 ] && pvremove -v -ff -y /dev/$part
+			else
+				[ $DRY_RUN -eq 0 ] && lvremove -f -S vg_uuid=$VG_UUID > /dev/null 2>&1
+				[ $DRY_RUN -eq 0 ] && vgremove -f -S vg_uuid=$VG_UUID > /dev/null 2>&1
+				[ $DRY_RUN -eq 0 ] && pvremove -ff -y /dev/$part > /dev/null
+			fi
+		elif [ $VERBOSE -ne 0 ] && [ ! -z $partnum ]; then
+			echo "Detected unrecognised partition: /dev/$part"
+			file -s /dev/$part
+			echo -n "Wipe partition (Control-C aborts)? "
+			read $ans
+		fi
+	fi
+	if [ ! -z $partnum ]; then
+		if [ $VERBOSE -ne 0 ]; then
+			echo -n "Wiping partition /dev/$part ... "
+			[ $DRY_RUN -eq 0 ] && wipefs -af /dev/$part
+			if [ ! -z $COUNT ]; then
+				echo -n "Overwriting first $(( $COUNT / 2 )) kiB ..."
+				[ $DRY_RUN -eq 0 ] && dd if=/dev/zero bs=512 count=$COUNT of=/dev/$part
+			fi
+			echo -e "done.\n"
+		else
+			[ $DRY_RUN -eq 0 ] && wipefs -afq /dev/$part > /dev/null
+			[ $DRY_RUN -eq 0 ] && [ ! -z $COUNT ] && dd if=/dev/zero bs=512 count=$COUNT of=/dev/$part 2>/dev/null
+		fi
+	fi
+done
+if [ $VERBOSE -ne 0 ]; then
+	echo -n "Erase partition table of disk /dev/$SDB (Control-C aborts)? "
+	read $ans
+	if $(partprobe -ds /dev/$SDB | grep -q msdos); then
+		[ $DRY_RUN -eq 0 ] && sfdisk --delete /dev/$SDB
+	else
+		[ $DRY_RUN -eq 0 ] && sgdisk -Z -o /dev/$SDB
+	fi
+	[ $DRY_RUN -eq 0 ] && wipefs -a /dev/$SDB
+	[ $DRY_RUN -eq 0 ] && [ ! -z $COUNT ] && dd if=/dev/zero bs=512 count=2048 of=/dev/$SDB
+else
+	if $(partprobe -ds /dev/$SDB | grep -q msdos); then
+		[ $DRY_RUN -eq 0 ] && sfdisk --delete /dev/$SDB > /dev/null
+	else
+		[ $DRY_RUN -eq 0 ] && sgdisk -Z -o /dev/$SDB > /dev/null
+	fi
+	[ $DRY_RUN -eq 0 ] && wipefs -aq /dev/$SDB > /dev/null
+	[ $DRY_RUN -eq 0 ] && [ ! -z $COUNT ] && dd if=/dev/zero bs=512 count=2048 of=/dev/$SDB 2>/dev/null
+fi
+if [ $DRY_RUN -eq 0 ]; then
+	echo -e "\n\"Secondary\" disk /dev/$SDB is hopefully now blank!"
+else
+	echo -e "\n\"Secondary\" disk /dev/$SDB is hopefully _NOT_ blank! ;-)"
+fi
+
+exit 0
