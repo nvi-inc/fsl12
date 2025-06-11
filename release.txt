@@ -1,8 +1,8 @@
 //
-// Copyright (c) 2020, 2023 NVI, Inc.
+// Copyright (c) 2020, 2023, 2025 NVI, Inc.
 //
-// This file is part of the FSL11 Linux distribution.
-// (see http://github.com/nvi-inc/fsl11).
+// This file is part of the FSL12 Linux distribution.
+// (see http://github.com/nvi-inc/fsl12).
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -39,4 +39,4 @@ Versioning
 . A major change would increment the major level, e.g., 2.0.0, and would be a
   new release with new updated documents and their version numbers, but it
   isn't clear what the use case would be, the next OS would go to a new repo,
-  e.g., fsl11.
+  e.g., fsl13.

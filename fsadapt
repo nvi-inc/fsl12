@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2023 NVI, Inc.
+# Copyright (c) 2020, 2023, 2025 NVI, Inc.
 #
-# This file is part of FSL11 Linux distribution.
-# (see http://github.com/nvi-inc/fsl11).
+# This file is part of FSL12 Linux distribution.
+# (see http://github.com/nvi-inc/fsl12).
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,11 +19,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-# fsadapt  -- adapt a Debian 11.x installation for FS Linux 11
-# $Id: fsadapt,v 11.0 2022/08/04 14:19:30 jfq Exp $
+# fsadapt  -- adapt a Debian 13.x installation for FS Linux 12
+# $Id: fsadapt,v 12.0 2025/04/11 14:19:30 jfq Exp $
 
 # What          When                  Who
 # $Log: fsadapt,v $
+# Revision 12.0 2025/04/11 14:19:30  jfhq
+# Initial release for FS Linux 12
+#
 # Revision 11.0 2022/08/04 14:19:30  jfhq
 # Initial release for FS Linux 11
 #
@@ -184,18 +187,19 @@
 # Ensure dialog is installed or things will go very wrong!
 dialog --version > /dev/null || exit
 
-readonly DIALOG="dialog --backtitle FS/Debian/Linux-fsadapt-11.0"
+readonly DIALOG="dialog --backtitle FS/Debian/Linux-fsadapt-12.0"
 readonly PATCHOPTS="-s -p1 --set-utc"
 
-readonly DEBIANVER="11."
-readonly KERNELVER="5.10.0"
-FSMESS="We are about to update a Debian ${DEBIANVER}x + Linux ${KERNELVER} (FS Linux 11)"
+readonly DEBIANVER="13."
+readonly KERNELVER="6.12.30"
+
+FSMESS="We are about to update a Debian ${DEBIANVER}x + Linux ${KERNELVER} (FS Linux 12)"
 FSLINUX00=$(cut -c1-3 < /etc/debian_version)
-FSLINUX01=$(uname -r | cut -c1-6)
+FSLINUX01=$(uname -r | cut -c1-7)
   if [ "${FSLINUX00}" != "${DEBIANVER}"  -o "${FSLINUX01}" != "${KERNELVER}" ]; then
       echo -n "WARNING: Could not find Debian version or "
       echo "did not find an approved FS kernel.";
-      echo -n "I will run fsadapt as kernel ${KERNELVER} FS Linux 11"; read -r ans
+      echo -n "I will run fsadapt as kernel ${KERNELVER} FS Linux 12"; read -r ans
   fi
 
 # Default verbosity (none).
@@ -363,7 +367,7 @@ if [ "$NEW_ROOT" = / ]; then
     NEW_SWAP_DEVICE=$(grep -F "swap" /etc/fstab | grep "none")
     NEW_SWAP_DEVICE="$(echo "$NEW_SWAP_DEVICE" | cut -d' ' -f1)"
   fi
-  # Must be a local real Ext2 file system.
+  # Must be a local real ExtN file system.
   if mount | grep -F "/usr2" | grep -F "ext" | grep '^/dev' >/dev/null; then
     NEW_USR2_DEVICE="$(mount | grep -F "/usr2" | grep "^/dev" | cut -d' ' -f1)"
   fi
@@ -441,7 +445,7 @@ else
 fi
 
 # Linux GPIB driver for various GPIB boards.
-GPIBVER="4.3.4"
+GPIBVER="4.3.6"
 if [ ! -d "${NEW_ROOT}"usr/src/linux-gpib-${GPIBVER} ]; then
   atgpib_def="on"
 else
@@ -480,6 +484,18 @@ else
     stdaccts_def="on"
 fi
 
+# Fix up /etc/fstab contents
+if (grep -s -F 'swap' "${NEW_ROOT}"etc/fstab) &&
+   (grep -s -F $(readlink -f "${NEW_SWAP_DEVICE}") /proc/swaps) &&
+   (grep -s -F '/usr2' "${NEW_ROOT}"etc/fstab) &&
+   (mount | grep -s -F "$NEW_USR2_DEVICE") &&
+   (grep -s -F '/cdrom' "${NEW_ROOT}"etc/fstab) &&
+   (grep -s -F '/proc' "${NEW_ROOT}"etc/fstab); then
+    fstab_def="off"
+else
+    fstab_def="on"
+fi
+
 # Is lsb_release wrapped?
 noident_def="off"
 if [ -x "${NEW_ROOT}"usr/bin/lsb_release.real ]; then
@@ -509,7 +525,7 @@ elif [ "$SHOWPHASE1" ]; then
 \n\
 Missing '*' indicates that this action has already been performed.\n\
 Most of these can only be done _once_, so please don't put an '*' on\n\
-unless you are certain that you want and can to do that item again." \
+unless you are certain that you want to and can do that item again." \
 21 76 10 \
   skip      "Skip all steps below (regardless of [*] marks)" off \
   verbose   "Show names of files being processed in 'fsadapt'" $verb_def \
@@ -519,7 +535,7 @@ unless you are certain that you want and can to do that item again." \
   systemd   "Adjust systemd to run FS-specific programs in boot" $systemd_def \
   rtxgroup  "Add 'rtx' group to '/etc/group'" $rtxgroup_def \
   stdaccts  "Add 'oper' and 'prog' to '/etc/passwd and /etc/shadow'" $stdaccts_def \
-  fstab     "Make sure that '/etc/fstab' includes '/usr2' etc" "on" \
+  fstab     "Make sure that '/etc/fstab' includes '/usr2' etc" $fstab_def \
   noident   "Remove host and op.sys info from login prompts" $noident_def \
   2>/tmp/reply
   # Cancel?
@@ -614,14 +630,20 @@ fi
 ;;
       stdaccts)
 # Add std accounts
+    cat > "${NEW_ROOT}"usr/share/xsessions/xsession.desktop <<EOF-marker-with-no-quoted-chars-to-get-var-expansion
+[Desktop Entry]
+Name=Xsession
+Exec=/etc/X11/Xsession
+EOF-marker-with-no-quoted-chars-to-get-var-expansion
     if [ ! "$is_oper" ]; then
 	chroot "${NEW_ROOT}" adduser --home /usr2/oper --shell /bin/bash --ingroup rtx --no-create-home --gecos "FS Operator" --disabled-login oper >/dev/null 2>&1
     fi
     mkdir -p "${NEW_ROOT}"usr2/oper
-    chown ${VERBO} -R oper.rtx "${NEW_ROOT}"usr2/oper
+    chown ${VERBO} -R oper:rtx "${NEW_ROOT}"usr2/oper
     cat > "${NEW_ROOT}"var/lib/AccountsService/users/oper <<EOF-marker-with-no-quoted-chars-to-get-var-expansion
 [User]
 Language=
+Session=xsession
 XSession=default
 Icon=/usr2/oper/.face
 SystemAccount=false
@@ -630,10 +652,11 @@ EOF-marker-with-no-quoted-chars-to-get-var-expansion
 	chroot "${NEW_ROOT}" adduser --home /usr2/prog --shell /bin/bash --ingroup rtx --no-create-home --gecos "FS Programmer" --disabled-login prog >/dev/null 2>&1
     fi
     mkdir -p "${NEW_ROOT}"usr2/prog
-    chown ${VERBO} -R prog.rtx "${NEW_ROOT}"usr2/prog
+    chown ${VERBO} -R prog:rtx "${NEW_ROOT}"usr2/prog
     cat > "${NEW_ROOT}"var/lib/AccountsService/users/prog <<EOF-marker-with-no-quoted-chars-to-get-var-expansion
 [User]
 Language=
+Session=xsession
 XSession=default
 Icon=/usr2/prog/.face
 SystemAccount=false
@@ -650,9 +673,7 @@ fi
 # Dialog about running 'mkswap' on this partition.
 # (No point showing the dialog if we know we are running with
 #  that swap partition enabled.)
-RUNNING_SWAP_DEVICE=$(grep -F "swap" /etc/fstab | grep "none")
-RUNNING_SWAP_DEVICE="$(echo "$RUNNING_SWAP_DEVICE" | cut -d' ' -f1)"
-if [ "$NEW_SWAP_DEVICE" != "$RUNNING_SWAP_DEVICE" ]; then
+if (grep -s -F $(readlink -f "${NEW_SWAP_DEVICE}") /proc/swaps); then
   ${DIALOG} --title "Prepare this swap partition with 'mkswap'?" \
     --yesno \
 "You need to run 'mkswap' on any new swap partition at least once.\n\
@@ -667,6 +688,7 @@ please select 'No'." \
     17 74
   if [ $? = 0 ]; then
     mkswap "$NEW_SWAP_DEVICE"
+    swapon "$NEW_SWAP_DEVICE"
   fi
 fi
 
@@ -674,7 +696,7 @@ if (grep -F '/usr2' "${NEW_ROOT}"etc/fstab >/dev/null); then
   :
 else
   mkdir -p "${NEW_ROOT}"usr2
-  echo "$NEW_USR2_DEVICE" '  /usr2  ext2  defaults  1  1' >> "${NEW_ROOT}"etc/fstab
+  echo "$NEW_USR2_DEVICE" '  /usr2  ext4  defaults  1  1' >> "${NEW_ROOT}"etc/fstab
 fi
 # Try to ensure that the partition is formatted.
 # (Mounting an unformatted partition can cause horrid things
@@ -723,11 +745,11 @@ else
   cp ${VERBO} -p "${SRCS}"usr_bin_lsb_release "${NEW_ROOT}"usr/bin/lsb_release
 fi
 cat >"${NEW_ROOT}"etc/issue <<EOF-marker-with-no-quoted-chars-to-get-var-expansion
-Welcome to FS Linux 11 on \l.
+Welcome to FS Linux 12 on \l.
 
 EOF-marker-with-no-quoted-chars-to-get-var-expansion
 cat >"${NEW_ROOT}"etc/issue.net <<EOF-marker-with-no-quoted-chars-to-get-var-expansion
-Welcome to FS Linux 11
+Welcome to FS Linux 12
 
 EOF-marker-with-no-quoted-chars-to-get-var-expansion
 ;;
@@ -817,7 +839,7 @@ else
   sshkeys_def="on"
 fi
 # Do we have apt-show-upgradeable cron for weekly security updates.
-if [ -r /etc/cron.weekly/apt-show-upgradeable ] && \
+if [ -r /etc/cron.daily/apt-show-upgradeable -o -r /etc/cron.weekly/apt-show-upgradeable ] && \
    ! grep -q "^APT::Periodic::Unattended-Upgrade \"1\";" /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null && \
    grep -q "^\[cmdline\]" /etc/apt/listchanges.conf ; then
   apt_def="off"

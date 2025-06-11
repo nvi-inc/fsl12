@@ -1,8 +1,8 @@
 //
 // Copyright (c) 2024, 2025 NVI, Inc.
 //
-// This file is part of the FSL11 Linux distribution.
-// (see http://github.com/nvi-inc/fsl11).
+// This file is part of the FSL12 Linux distribution.
+// (see http://github.com/nvi-inc/fsl12).
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -65,8 +65,8 @@ connections, and promoting to _oper_ on connecting
 
 This document covers customization for AUID (login) user accounts. As
 written, it describes customization of the _oper_ account for AUID
-users on CIS hardened FSL11 systems (see the <<cis-setup.adoc#,CIS
-hardening for FSL11>> document), but it can adapted for use in other
+users on CIS hardened FSL12 systems (see the <<cis-setup.adoc#,CIS
+hardening for FSL12>> document), but it can adapted for use in other
 situations. Possible adaptations including:
 
 * Using this approach with the _prog_ account in addition to _oper_.
@@ -83,7 +83,7 @@ _oper_ with _oper_account_ (and _prog_ with _prog_account_) as for
 AUID accounts with CIS hardening (see the
 <<cis-setup.adoc#_enabling_user_promotion_to_operprog_and_root,Enabling
 user promotion to oper/prog and root>> section of the
-<<cis-setup.adoc#,CIS hardening for FSL11>> document for the details).
+<<cis-setup.adoc#,CIS hardening for FSL12>> document for the details).
 
 * On non-CIS hardened systems without creating new accounts, providing
 special aliases (in _~/.bash_alias_) to allow users to load different
@@ -123,7 +123,7 @@ when connecting from a PC.
 
 With the standard AUID configuration (see
 <<cis-setup.adoc#\_adding_auid_accounts,Adding AUID accounts>> in the
-<<cis-setup.adoc#,CIS hardening for FSL11 document>>, there are two
+<<cis-setup.adoc#,CIS hardening for FSL12 document>>, there are two
 __rc__ (__run command__) files that can be used for customization of
 the __oper__ account: __~oper/.profile_<AUID>__ and
 __~oper/.bashrc_<AUID>__ (where __<AUID>__ is the user's AUID account
@@ -156,7 +156,7 @@ given in the <<cis-setup.adoc#_setting_hostname_alias,Setting hostname
 alias>> section of the
 <<cis-setup.adoc#_additional_items_for_fs_operations,Additional items
 for FS operations>> appendix of the <<cis-setup.adoc#,CIS hardening
-for FSL11>> document.
+for FSL12>> document.
 
 == X11 resources customization
 
@@ -764,7 +764,7 @@ If you promote to _oper_ before opening the _xterm_, it will run in
 the _oper_ account instead of the AUID account.
 
 Example files for use with a quad display are included in
-_/root/fsl11/quad_display/_:
+_/root/fsl12/quad_display/_:
 
 [disc]
 * _fsy_ -- A script to open a `login shell` running the FS, or running
@@ -783,15 +783,15 @@ includes example window lay-outs, including for `xterm_2`.
 The scripts can be placed in _~oper/bin_ by _root_:
 
   cd ~oper/bin
-  cp /root/fsl11/quad_display/fsy .
-  cp /root/fsl11/quad_display/xterm_2 .
+  cp /root/fsl12/quad_display/fsy .
+  cp /root/fsl12/quad_display/xterm_2 .
   chown oper.rtx fsy xterm_2
   chmod o-x fsy
 
 The Xresources file can be placed in _~oper_ by _root_:
 
   cd ~oper
-  cp /root/fsl11/quad_display/.Xresources_remote .
+  cp /root/fsl12/quad_display/.Xresources_remote .
   chown oper.rtx .Xresources_remote
 
 If the file already exists in _~oper_ you will be asked to confirm the

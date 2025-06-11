@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# Copyright (c) 2020-2021, 2023-2024 NVI, Inc.
+# Copyright (c) 2020-2021, 2023-2025 NVI, Inc.
 #
-# This file is part of FSL11 Linux distribution.
-# (see http://github.com/nvi-inc/fsl11).
+# This file is part of FSL12 Linux distribution.
+# (see http://github.com/nvi-inc/fsl12).
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -269,10 +269,10 @@ exit 1
 #           leading '#') '#remote_user=spare'.
 #        D. Save the result.
 #   3. Follow the other directions in the 'Installing refresh_spare_usr2'
-#      subsection of the 'RAID Notes for FSL11' document.
+#      subsection of the 'RAID Notes for FSL12' document.
 #      For CIS hardened systems, follow the other directions in the 'Installing
 #      backup_usr2 for CIS hardening' section of the 'Additional items for FS
-#      operations' appendix of the 'CIS Hardening for FSL11' document.
+#      operations' appendix of the 'CIS Hardening for FSL12' document.
 #   4. Test it the first time just after the Spare system's disk has been
 #      rotated.
 
@@ -358,7 +358,7 @@ EOF
 
     fuser -k -M -m /usr2 || :
     sleep 1
-# it seems with FSL11 for a user who initially logged into an acocunt with
+# it seems with FSL12 for a user who initially logged into an acocunt with
 # with a home directory on /usr2, the above two commands need to be executed
 # twice more to get success reliably with the umount command
     fuser -k -M -m /usr2 || :

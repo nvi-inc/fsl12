@@ -1,8 +1,8 @@
 //
-// Copyright (c) 2020, 2023 NVI, Inc.
+// Copyright (c) 2020, 2023, 2025 NVI, Inc.
 //
-// This file is part of the FSL11 Linux distribution.
-// (see http://github.com/nvi-inc/fsl11).
+// This file is part of the FSL12 Linux distribution.
+// (see http://github.com/nvi-inc/fsl12).
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,10 +21,10 @@
 = Field System Linux Distribution
 
 This archive contains instructions and utilities for setting up a
-standard Field System Linux system. While you can install the Field
+standard Field System Linux system. While you can will be able to install the Field
 System on other Linux distributions, this system provides a
 tried-and-tested platform for robust VLBI operations.
 
 Using this guide will make it easier to ask the community for help.
 
-Follow the https://nvi-inc.github.io/fsl11[installation notes] to get started.
+Follow the https://nvi-inc.github.io/fsl12[installation notes] to get started.

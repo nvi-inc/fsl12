@@ -1,8 +1,8 @@
 //
 // Copyright (c) 2020-2025 NVI, Inc.
 //
-// This file is part of the FSL11 Linux distribution.
-// (see http://github.com/nvi-inc/fsl11).
+// This file is part of the FSL12 Linux distribution.
+// (see http://github.com/nvi-inc/fsl12).
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 :doctype: book
 
-= CIS hardening for FSL11
+= CIS hardening for FSL12
 :sectnums:
 :experimental:
 :toclevels: 3
@@ -101,21 +101,21 @@ _sudoers_; cleanup _refresh_spare_usr2_ only for _root_
 == Introduction
 
 These notes detail adding extra security features to Field System
-Linux _11_, FSL11, as advised by Center for Internet Security (CIS).
+Linux _12_, FSL12, as advised by Center for Internet Security (CIS).
 This is provided as an option for sites that might need additional
 security.
 
 At the time of this writing, there is no CIS security benchmark for
-Debian _11_, which is what FSL11 is based on. Instead, the latest
+Debian _13_, which is what FSL12 is based on. Instead, the latest
 benchmark for Debian _10_ was used. Although this is not technically
 correct, the changes in the benchmark for Debian _10_ compared to
 Debian _9_ were relatively minor; primarily removal of items. It seems
 plausible that the Debian _10_ benchmark will be adequate for Debian
-_11_. In fact, all of the items that fail for FSL11 are either things
+_13_. In fact, all of the items that fail for FSL12 are either things
 that are required for  FS operation, items that appear to actually be
 secure despite the benchmark not recognizing them as such, and one
 change since Debian _10_ that we worked around.  However, we don't
-know what additional checks will be in the Debian _11_ benchmark.
+know what additional checks will be in the Debian _13_ benchmark.
 
 [NOTE]
 ====
@@ -132,7 +132,7 @@ _misc/ciscat.properties_.
 ====
 
 With the exception of the partition configuration, all actions are to
-be performed post-installation (see the <<installation.adoc#,FSL11
+be performed post-installation (see the <<installation.adoc#,FSL12
 Installation>> document). Applying the remediations, the exceptions
 that are still present, all tests that failed, and problems with the
 benchmark remediations are provided in separate sections below. An
@@ -157,14 +157,14 @@ All commands need to be run as _root_.
 
 As many remediations as possible are implemented by the _remediate_
 script.  The script is intended to be run after the "`Third Stage
-Installation`" steps in the FSL11 instructions, before any further
+Installation`" steps in the FSL12 instructions, before any further
 changes have been made to the system (however initializing and adding
 other disks to the RAID can intervene).
 
 To apply these remediations, execute the commands:
 
 ....
-cd /root/fsl11
+cd /root/fsl12
 script ../remediate.txt
 ./remediate
 exit
@@ -209,7 +209,7 @@ _root_ before they are applied, it will become impossible to get
 _root_ access.
 
 ....
-cd /root/fsl11
+cd /root/fsl12
 script ../remediate2.txt
 ./remediate2
 exit
@@ -359,7 +359,7 @@ for them to take effect.
 . In principle, you can remove the `Debian` label from the _grub_ boot
 menus by editing _/etc/default/grub_ and inserting a line:
 
- GRUB_DISTRIBUTOR=FSL11
+ GRUB_DISTRIBUTOR=FSL12
 
 +
 
@@ -379,7 +379,7 @@ line.
 . In principle, you can remove the `Linux` label from the lines
 displaying kernel image files, by editing _/etc/grub.d/10_linux_ and
 globally replacing `{nbsp}Linux{nbsp}` (note the single leading and
-single trailing spaces) with `{nbsp}FSL11{nbsp}` (not the single
+single trailing spaces) with `{nbsp}FSL12{nbsp}` (not the single
 leading and single trailing spaces).
 
 ====
@@ -679,7 +679,7 @@ executes scripts on _/tmp_ as part of package installation. The
 `noexec` option prevents the execution of the scripts. To work around
 this issue, you can exeucte:
 
-    cd /root/fsl11/
+    cd /root/fsl12/
     ./root_tmp
 
 +
@@ -712,7 +712,7 @@ is to disable and re-enable the firewall. If you have this problem and
 the same solution works, a one-time service at start-up can be created
 to perform this action:
 
-  cd /root/fsl11
+  cd /root/fsl12
   ./create_ufw_re-enable
 +
 
@@ -956,7 +956,7 @@ first three for _root_ (for the latter only those three are needed),
 enter:
 
 ....
-~/fsl11/AUID/install_AUID
+~/fsl12/AUID/install_AUID
 ....
 
 The script will also set _~oper_ and _~prog_ directories to be
@@ -1077,11 +1077,11 @@ and/or:
 
 . If the account will be used by an operator and/or programmer with
 the GUI, the X11 environment needs to be set-up. The following command
-will move an existing _/usr2/dhorsley_ to _/usr2/dhorsley.FSL11COPY_
+will move an existing _/usr2/dhorsley_ to _/usr2/dhorsley.FSL12COPY_
 and create a new _/usr2/dhorsley_ with useful skeleton files (you will
 be prompted for the account name):
 
- ~/fsl11/AUID/AUID_update
+ ~/fsl12/AUID/AUID_update
 
 +
 
@@ -1120,8 +1120,8 @@ but is for example on _/home_, the following commands should be used
 instead:
 
     cd /home
-    mv dhorsley dhorsley.FSL11COPY
-    cd ~/fsl11/AUID/skel
+    mv dhorsley dhorsley.FSL12COPY
+    cd ~/fsl12/AUID/skel
     find . -print|cpio -pmdu /home/dhorsley
     chown -R dhorsley.dhorsley /home/dhorsley
     chmod 0750 /home/dhorsley
@@ -1199,7 +1199,7 @@ _refresh_secondary_ with any options if they use _sudo_ explicitly.
 . Install _AUID_ scripts to allow `operators` group accounts to run
 the _sudo_ scripts without explicitly entering _sudo_:
 
-  ~/fsl11/AUID/install_RAID
+  ~/fsl12/AUID/install_RAID
 
 +
 
@@ -1262,7 +1262,7 @@ consistent.
 name, without a domain name unless that is required by remote mail
 hosts or mail lists. If so,
 <<installation.adoc#_generate_fqdn_in_helo_for_outgoing_mail,Generate FQDN in HELO for outgoing mail>>
-in the FSL11 Installation document may also be helpful.
+in the FSL12 Installation document may also be helpful.
 
 .. Edit _/etc/exim4/update-exim4.conf.conf_, change the value of
 `dc_other_hostnames=` to the new alias
@@ -1404,7 +1404,7 @@ should read all of the procedure before using it.
 
 TIP: Read the introduction of the
 <<raid.adoc#_refresh_spare_usr2,refresh_spare_usr2>> section of the
-<<raid.adoc#,RAID Notes for FSL11>> document for important information
+<<raid.adoc#,RAID Notes for FSL12>> document for important information
 on the __refresh_spare_usr2__ script.
 
 NOTE: Please see the *NOTE* in the
@@ -1448,7 +1448,7 @@ a simple alias for routine use.
 
 ... Move the script into position:
 
-  ~/fsl11/RAID/install_refresh_spare_usr2
+  ~/fsl12/RAID/install_refresh_spare_usr2
 
 ... Customize _/usr/local/sbin/refresh_spare_usr2_, following the
 directions in the comments in the script (repeated here):
@@ -1580,7 +1580,7 @@ run the _backup_usr2_ script with:
 
 ... Move the script into position:
 
- ~/fsl11/RAID/install_backup_usr2
+ ~/fsl12/RAID/install_backup_usr2
 
 ... Customize _/usr/local/sbin/backup_usr2_ following the directions
 in the comments in the script (repeated here):
@@ -1612,7 +1612,7 @@ to the alias (preferred), FQDN, or IP address of your _spare_ system.
 
 .. Install the AUID script that runs the _sudo_ script:
 
- ~/fsl11/AUID/install_backup_usr2
+ ~/fsl12/AUID/install_backup_usr2
 
 .. Lock-out the _spare_ account from normal login (but it must have a
 shell). This will disable password login, but not _ssh_ login with
@@ -1718,7 +1718,7 @@ _backup_usr2_.
 To use _backup_usr2_ as part of a monthly backup, you first should
 perform a disk rotation on both systems.  The disk rotation procedure
 is described in the <<raid.adoc#_disk_rotation,Disk rotation>> section
-of the <<raid.adoc#,RAID Notes for FSL11>> document. You should start
+of the <<raid.adoc#,RAID Notes for FSL12>> document. You should start
 a disk rotation on the __spare__ system (e.g., __fs2__) first. Once
 this is successfully refreshing, log out of the __spare__ system. Then
 start a disk rotation running on the __operational__ system (e.g.,
@@ -1810,4 +1810,4 @@ This step (and procedure) continues at the <<raid.adoc#wait, Wait>>
 step in the <<raid.adoc#_using_refresh_spare_usr2,Using
 refresh_spare_usr2>> subsection of the
 <<raid.adoc#_refresh_spare_usr2,refresh_spare_usr2>> subsection of the
-<<raid.adoc#,RAID Notes for FSL11>> document.
+<<raid.adoc#,RAID Notes for FSL12>> document.

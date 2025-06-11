@@ -1,6 +1,6 @@
 #!/bin/sh
-# For FSL11, only bash is supported as the login shell for AUID accounts.
-#  That is, 'source .login' is not useful here for AUID accounts in FSL11.
+# For FSL11 and 12, only bash is supported as the login shell for AUID accounts.
+#  That is, 'source .login' is not useful here for AUID accounts in FSL11 or 12.
 # If tcsh is the login shell for an AUID account with FSL10 (gdm3):
 #  change the #!/bin/sh line above to #!/bin/tcsh (for documentation
 #  purposes only) and uncomment the next line.

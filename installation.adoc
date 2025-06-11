@@ -1,8 +1,8 @@
 //
 // Copyright (c) 2020-2025 NVI, Inc.
 //
-// This file is part of the FSL11 Linux distribution.
-// (see http://github.com/nvi-inc/fsl11).
+// This file is part of the FSL12 Linux distribution.
+// (see http://github.com/nvi-inc/fsl12).
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -97,7 +97,7 @@ not want to use the software RAID.
 
 If you are using the RAID configuration, you may wish to review the
 <<raid.adoc#_recommended_practices,Recommended practices>> subsection
-of the <<raid.adoc#,RAID notes for FSL11>> document before installing.
+of the <<raid.adoc#,RAID notes for FSL12>> document before installing.
 However, all of the practices listed there can be implemented after
 the installation steps below are complete.
 
@@ -131,16 +131,18 @@ explanations that impact what you actually type.
 |          | _jessie_     |     _8.0_      | _3.16.0_ |
 |  _10_    | _stretch_    |     _9.0_      | _4.9.0_  | 2020
 |          | _buster_     |    _10.0_      | _4.19.0_ |
-|  _11_    | _bullseye_  |     _11.0_      | _5.10.0_ | 2023
+|  _11_    | _bullseye_   |    _11.0_      | _5.10.0_ | 2023
+|          | _bookworm_   |    _12.0_      | _6.1.0_  |
+|  _12_    | _trixie_     |    _13.0_      | _6.12.30_ | 2025
 |=============================================================
 
-The FSL11 documents follow the FS font conventions, which can be found
+The FSL12 documents follow the FS font conventions, which can be found
 at: https://nvi-inc.github.io/fs/misc/font_conventions.html.
 
 == Choosing architecture and creating installation media
 
-FSL11 can be configured for either the _i386_ or _amd64_
-architectures. With FSL11 it is necessary to use Field System version
+FSL12 can be configured for either the _i386_ or _amd64_
+architectures. With FSL12 it is necessary to use Field System version
 _10.2_ or later. Those FS versions support both architectures
 natively, so either may be used. The _amd64_ architecture is preferred
 and should be used if possible (it should be unless the processor is
@@ -168,7 +170,7 @@ _<y>_, for a given _<x>_, e.g., _11.<x>.<y>_, pick the largest _<y>_.)
 Note also that installing from DVDs as described here is
 recommended mainly for sites with little to poor Internet connectivity (even
 then, use of a single DVD may suffice) and the equivalent use of a "`Debian
-GNU/Linux _11.<x>.<y>_ Bullseye - Official _i386_/_amd64_ NETINST`" CD would suffice for
+GNU/Linux _11.<x>.<y>_ Trixie - Official _i386_/_amd64_ NETINST`" CD would suffice for
 installation at most sites with good connectivity. Official images for the installer
 can be found at: https://cdimage.debian.org/cdimage/release/ 
 (or at: https://cdimage.debian.org/cdimage/archive/
@@ -179,7 +181,7 @@ https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/
 
 The details of creating your installation media can be found in the Debian
 installation guide available from:
-https://www.debian.org/releases/bullseye/installmanual
+https://www.debian.org/releases/trixie/installmanual
 
 
 == Motherboard setup
@@ -193,7 +195,7 @@ server support.
 
 Some hardware may require special procedures. For cases we know about,
 instructions are provided in top-level sub-directories of the
-repository, which is visible at https://github.com/nvi-inc/fsl11. In
+repository, which is visible at https://github.com/nvi-inc/fsl12. In
 addition to special instructions, there may be needed software/drivers
 in the sub-directories. The following table lists the cases that are
 currently covered. Some of these solutions may be useful for other
@@ -522,7 +524,7 @@ setting up the partition`
 
 +
 
-NOTE: If you physically only have one disk bay and wish to construct a FSL11 `test-bed`,
+NOTE: If you physically only have one disk bay and wish to construct a FSL12 `test-bed`,
 it is possible to avoid using the software RAID layer entirely. Simply select `Use as`, then select `physical volume for LVM`
 for this partition instead and skip ahead to <<Setup Logical Volume Manager (LVM)>> below.
 However, please note that a single disk setup is not recommended for any _operational_ system.
@@ -636,7 +638,7 @@ For each additional DVD you wish to scan, insert it in the drive, select
 will need to use `*eject /dev/cdrom*` from another virtual console to do this)
 
 Select `No` and press  kbd:[Enter]  to continue once you are done.
-If prompted, insert the "`Debian GNU/Linux _11.<x>.<y>_ Bullseye - Official _i386_/_amd64_
+If prompted, insert the "`Debian GNU/Linux _11.<x>.<y>_ Trixie - Official _i386_/_amd64_
 Binary-1 DVD`" back into the DVD-ROM drive and press  kbd:[Enter].
 
 WARNING: If you do scan additional DVDs, the following useful dialogue
@@ -799,7 +801,7 @@ to use a proxy _proxy.some.where_ at port `8080` for example.
 
 === Edit /etc/apt/sources.list
 
-NOTE: If _Bullseye_ is no longer under security support, you will also
+NOTE: If _Trixie_ is no longer under security support, you will also
 need to modify _sources.list_ as described in the
 <<End of security updates>> in the <<Managing Security Updates>>
 appendix.
@@ -810,22 +812,22 @@ to use DVDs, whereupon the dialogue presented below may differ) and
 check you have the equivalent of the following entries towards the top
 of the file, adding in `contrib` and/or `non-free` as needed:
 
-   deb http://deb.debian.org/debian/ bullseye main contrib non-free
-   deb-src http://deb.debian.org/debian/ bullseye main contrib non-free
+   deb http://deb.debian.org/debian/ trixie main contrib non-free
+   deb-src http://deb.debian.org/debian/ trixie main contrib non-free
 
 and likewise the equivalent of the following entries towards the
 bottom of the file, again adding in `contrib` and/or `non-free` as
 needed:
 
-   deb http://deb.debian.org/debian/ bullseye-updates main contrib non-free
-   deb-src http://deb.debian.org/debian/ bullseye-updates main contrib non-free
+   deb http://deb.debian.org/debian/ trixie-updates main contrib non-free
+   deb-src http://deb.debian.org/debian/ trixie-updates main contrib non-free
 
 (where you can use any suitable mirror instead of _deb.debian.org_)
 
 Also add `contrib` and/or `non-free` to the lines referring to the
 _security.debian.org_ mirror in the middle of the file.
 
-WARNING: you _MUST_ use `bullseye` and _NOT_ `stable` for the
+WARNING: you _MUST_ use `trixie` and _NOT_ `stable` for the
 distribution in all these entries (but CD/DVD entries might use
 `unstable`.)
 
@@ -855,18 +857,18 @@ NOTE: It is also possible to add additional DVDs at this stage using the
 . Get the selections by downloading this repository:
 +
     cd /root
-    git clone https://github.com/nvi-inc/fsl11
-    cd fsl11
+    git clone https://github.com/nvi-inc/fsl12
+    cd fsl12
 
 . Feed the package selections into _dpkg_ using the command, for _amd64_
 
-   dpkg --set-selections < selections/fsl11_amd64.selections
+   dpkg --set-selections < selections/fsl12_amd64.selections
 
 +
 
 or, for _i386_
 
-   dpkg --set-selections < selections/fsl11_i386.selections
+   dpkg --set-selections < selections/fsl12_i386.selections
 
 
 . Start the additional package installation with
@@ -905,7 +907,7 @@ So that the update mechanism will work correctly, run
 
 === fsadapt
 
-In the _/root/fsl11_ directory, start _fsadapt_ with
+In the _/root/fsl12_ directory, start _fsadapt_ with
 
     ./fsadapt
 
@@ -981,7 +983,7 @@ entering the passwords twice as prompted.
 You can install some useful tools for working with the RAID, if you're
 actually using it, with:
 
-   ~/fsl11/RAID/install_tools
+   ~/fsl12/RAID/install_tools
 
 The <<Fourth stage installation>> section, below, assumes the first
 four of these tools have been installed. The six tools are:
@@ -1004,7 +1006,7 @@ out of the RAID for use as a backup
 was removed from) the RAID back into it
 
 TIP: More information about RAID operation can be found in the
-<<raid.adoc#,RAID notes for FSL11>> document.
+<<raid.adoc#,RAID notes for FSL12>> document.
 
 === Download the Field System
 
@@ -1193,9 +1195,9 @@ If you have an existing FS installation you want to transfer to this
 machine, you will need to transfer your files and update their
 contents for use with FS _10.2_ or later. For transferring and
 updating to FS _10.2_, please see the appendix "`Transferring an
-existing FS installation to FSL11`" in the "`FS 10.2 Update Notes`"
+existing FS installation to FSL12`" in the "`FS 10.2 Update Notes`"
 document at:
-https://nvi-inc.github.io/fs/releases/10/2/10.2#_transferring_an_existing_fs_installation_to_fsl11.
+https://nvi-inc.github.io/fs/releases/10/2/10.2#_transferring_an_existing_fs_installation_to_fsl12.
 
 [appendix]
 :sectnumlevels: 4
@@ -1212,14 +1214,14 @@ _root_ permissions.
 
 For stations that wish to conform to the additional security
 recommendations of the Center for Internet Security (CIS), move on to
-the <<cis-setup.adoc#,CIS hardening FSL11>> document.
+the <<cis-setup.adoc#,CIS hardening FSL12>> document.
 
 ==== Alternate hardening
 
 If you don't want the complete CIS hardening, which creates some
 inconveniences and is only required in certain environments, you may
 still be interested in applying a subset of the remediations. You can
-pick and choose those from the <<cis-setup.adoc#,CIS hardening FSL11>>
+pick and choose those from the <<cis-setup.adoc#,CIS hardening FSL12>>
 document and its script.
 
 A useful minimum set of features to apply would be to install _ufw_
@@ -1889,7 +1891,7 @@ section for setting the ownership of _~/.ssh/config_.
 
 +
 
-The FSL11 installation disables suspend by default (as part of the
+The FSL12 installation disables suspend by default (as part of the
 `greeter` item in the <<FS Adaptation: Setup (Window 2)>> sub-step of
 <<_fsadapt>> in the <<Third stage installation>>). If you did not
 disable suspend, you may encounter this issue. A way to fix it is to
@@ -2001,7 +2003,7 @@ This replaces the use of the _giza_ package in _pgperl_ with _pgplot_.
 It will restore the behavior of _pgperl_ (used by _plotlog_) from
 distributions FSL10 and earlier. Full directions can be found in the
 _INSTALL_ file in sub-directory
-https://github.com/nvi-inc/fsl11/tree/main/libpgplot-perl[libpgplot-perl].
+https://github.com/nvi-inc/fsl12/tree/main/libpgplot-perl[libpgplot-perl].
 
 This package uses the same _pgperl_ source as the standard version,
 but it is built against _pgplot_ instead. If _pgperl_ receives a
@@ -2036,7 +2038,7 @@ using the weekly _cron_ job is described below in the
 === Installing updates (upgrading)
 
 This section gives a recipe for upgrading, collecting best practices
-from this appendix and elsewhere in the FSL11 documents. Links to
+from this appendix and elsewhere in the FSL12 documents. Links to
 explanatory information are included.
 
 All steps are to be performed by _root_:
@@ -2112,7 +2114,7 @@ there is a kernel update.
 
 . Execute (see the <<Manually checking for updates>> section below):
 
- /root/fsl11/etc_cron.weekly_apt-show-upgradeable --which=news
+ /root/fsl12/etc_cron.weekly_apt-show-upgradeable --which=news
 
 +
 
@@ -2274,7 +2276,7 @@ When an ABI update is installed, it will be necessary to update any,
 so-called, _out-of-tree_ modules that use the kernel ABI. This must be
 done _after_ rebooting with the new kernel installed.
 
-For a normal FSL11 installations, unless you have installed other
+For a normal FSL12 installations, unless you have installed other
 out-of-tree modules, the only module that needs to be rebuilt is the
 GPIB driver (if it is installed).  You will need to recompile it (usually using _fsadapt_,
         `Window 2`, `config_gpib` only) _after_ the initial reboot
@@ -2288,10 +2290,10 @@ appropriately _after_ the initial reboot and then (to keep these
 ===  Recovery from a failed update
 
 If an update fails, e.g., an updated kernel fails to boot or another problem is discovered,
-you can recover as described in FSL11 RAID document
+you can recover as described in FSL12 RAID document
 <<raid.adoc#_recoverable_testing,Recoverable testing>>
 section, if you were following that method, or from a shelf disk
-according to the FSL11 RAID document <<raid.adoc#_recover_from_a_shelf_disk,Recover from
+according to the FSL12 RAID document <<raid.adoc#_recover_from_a_shelf_disk,Recover from
 a shelf disk>> section if not and you have a good shelf disk.
 
 ==== Additional recovery option for a failed ABI kernel update
@@ -2326,7 +2328,7 @@ version, there will be two packages you should purge:
 If you do not use the weekly _cron_ job, you can run the distributed
 copy of the weekly script manually to check for updates:
 
-    /root/fsl11/etc_cron.weekly_apt-show-upgradeable
+    /root/fsl12/etc_cron.weekly_apt-show-upgradeable
 
 If there is no output, there are no updates to install.
 
@@ -2339,7 +2341,7 @@ Any `News` items will be included in the output along with the
 packages to be updated. If you would like to just see any `News` items
 you can run the script with the `--which=news` option:
 
-    /root/fsl11/etc_cron.weekly_apt-show-upgradeable --which=news
+    /root/fsl12/etc_cron.weekly_apt-show-upgradeable --which=news
 
 If there are updates available and no `News` items, you will only get
 the installation instructions.
@@ -2410,8 +2412,8 @@ for alignment.
 
 === End of security updates
 
-When support for _Bullseye_ ends, currently expected at the end of
-August 2026, there will be no more security updates. At that time, the
+When support for _Trixie_ ends, currently expected at the end of
+August 2028, there will be no more security updates. At that time, the
 existing packages will subsequently be migrated to the historical
 Debian archive site. This will be visible in the output from the
 weekly _cron_ job script as errors that the packages files can't be
@@ -2428,21 +2430,21 @@ site. Although there will be no more security updates, this will enable
 downloading of additional packages if they are needed. The new lines that
 should replace the corresponding existing lines are:
 +
-   deb http://archive.debian.org/debian/ bullseye main contrib non-free
-   deb http://archive.debian.org/debian-security bullseye/updates main contrib non-free
+   deb http://archive.debian.org/debian/ trixie main contrib non-free
+   deb http://archive.debian.org/debian-security trixie/updates main contrib non-free
 +
 And if you are using `deb-src` lines:
 +
-   deb-src http://archive.debian.org/debian/ bullseye main contrib non-free
-   deb-src http://archive.debian.org/debian-security bullseye/updates main contrib non-free
+   deb-src http://archive.debian.org/debian/ trixie main contrib non-free
+   deb-src http://archive.debian.org/debian-security trixie/updates main contrib non-free
 +
 Otherwise the `deb-src` lines can be commented out (with a leading `#`).  Any other `deb` or
 `deb-src` lines relating to updates, proposed-updates etc. should likewise be commented out.
 +
 In addition, if you want to install packages from more recent
-distributions that have been backported to _bullseye_ you can add:
+distributions that have been backported to _trixie_ you can add:
 +
-  deb http://archive.debian.org/debian-backports bullseye-backports main contrib non-free
+  deb http://archive.debian.org/debian-backports trixie-backports main contrib non-free
 +
 However, the "`backports`" are not normally needed.
 +
@@ -2452,7 +2454,7 @@ Lastly, update the index files:
 +
 This may generate an error about a `Release` file having expired, but that is benign.
 
-NOTE: When support for _Bullseye_ ends, it is strongly advised that
+NOTE: When support for _Trixie_ ends, it is strongly advised that
 you move your FS machine behind a firewall and/or upgrade it to a more
 recent FS Linux release.
 
@@ -2648,11 +2650,11 @@ ls -ltR _mount_point_ >/tmp/before.txt
 +
 
 NOTE: This sub-step, and recovery in case of a problem, is much easier
-if you using the FSL11 RAID system. If not, it is strongly recommended
+if you using the FSL12 RAID system. If not, it is strongly recommended
 that you make your own backup of your entire system. The remainder of
 this sub-step assumes you are using a RAID, following the approach of
 the <<raid.adoc#_recoverable_testing,Recoverable testing>> procedure
-in the <<raid.adoc#,Raid Notes for FSL11>> document.
+in the <<raid.adoc#,Raid Notes for FSL12>> document.
 
 +
 
@@ -2696,7 +2698,7 @@ lvextend -L8G _Path_
 
 IMPORTANT: Do not _interrupt_ the next command. If it is interrupted
 and you are using the <<raid.adoc#_recoverable_testing,Recoverable
-testing>> procedure in the <<raid.adoc#,Raid Notes for FSL11>>
+testing>> procedure in the <<raid.adoc#,Raid Notes for FSL12>>
 document, you will need to utilize the
 <<raid.adoc#_if_the_update_is_deemed_to_have_failed,If the update is
 deemed to have failed>> subsection of that procedure. Otherwise, if
@@ -2756,7 +2758,7 @@ logical volume, there should be no differences.
 
 NOTE: If you not are using the
 <<raid.adoc#_recoverable_testing,Recoverable testing>> procedure in
-the <<raid.adoc#,Raid Notes for FSL11>> document, you will need to use
+the <<raid.adoc#,Raid Notes for FSL12>> document, you will need to use
 your own methods to restore the system if there was a problem. This
 step describes how to proceed if you are using the referenced
 procedure.
@@ -2786,7 +2788,7 @@ first restore the RAID using the
 <<raid.adoc#_if_the_update_is_deemed_to_have_failed,If the update is
 deemed to have failed>> subsection of the
 <<raid.adoc#_recoverable_testing,Recoverable testing>> procedure in
-the <<raid.adoc#,Raid Notes for FSL11>> document.
+the <<raid.adoc#,Raid Notes for FSL12>> document.
 
 [appendix]
 
@@ -2799,7 +2801,7 @@ NOTE: If your computer's _setup_ utility is locked with a password, you
 may need that password to select booting from your installation media.
 
 NOTE: You should provide suitable values for your system when a
-specific value is required. Values that agree with the FSL11 install
+specific value is required. Values that agree with the FSL12 install
 described in this document (or reasonable defaults) are shown in parentheses.
 
 . Boot from installation media
