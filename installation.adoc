@@ -551,18 +551,13 @@ the <<Setup physical partitions>> step above.
 
 . Select `Finish`.
 
-. Back in partitioning, select the partition `#1` (with no designated use) _under_
-`RAID1 device #0` and press kbd:[Enter]
-
 +
 
-NOTE: If that partition appears immediately after being created
-already having a designated use, perhaps `lvm`, you may need to use
-the method of <<zeros,Overwriting with zeros>> in the
-<<Setup physical partitions>> sub-step above.
-
-. Select `Use as`, then select `physical volume for LVM`, then `Done
-setting up the partition`
+NOTE: Back in partitioning, if a partition `#1` under the RAID partition
+appears immediately after the RAID was created and already has a designated
+use, perhaps `lvm`, you may need to use the method of
+<<zeros,Overwriting with zeros>> in the <<Setup physical partitions>> sub-step
+above.
 
 ==== Setup Logical Volume Manager (LVM)
 
