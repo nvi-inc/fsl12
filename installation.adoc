@@ -442,9 +442,9 @@ SATA HARDDISK`, and press kbd:[Enter].
 
 WARNING: Do _not_ select your installation media.
 
-.. The installer may warn: `You have selected an entire device to
-partition…`. If so, select `Yes`. If you are prompted to delete RAID
-partitions, select `Yes`.
+.. The installer may warn: `You have selected an entire device to partition…`.
+If so, select `Yes` to confirm overwriting the whole disk. If you are prompted
+to delete RAID partitions, select `Yes`.
 
 . Select the (one and only entry) `FREE SPACE` under your disk. There
 should be no RAID or LVM partitions shown.
