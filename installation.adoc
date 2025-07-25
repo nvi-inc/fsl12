@@ -20,9 +20,9 @@
 
 :doctype: book
 
-= FS Linux 11 Installation Guide
+= FS Linux 12 Installation Guide
 J.F.H. Quick, D.E. Horsley, and W.E. Himwich
-Version 1.2.1 - March 2025
+Version 0.0.1 - July 2025
 
 :sectnums:
 :experimental:
@@ -154,7 +154,7 @@ any processor, but requires use of the `Legacy` (or `BIOS`) boot mode
 in most cases. The _amd64_ installation media will fail to boot on a
 system that is 32-bit only.
 
-To install Debian _11_, you can either use a DVD or USB drive. The latter is
+To install Debian _13_, you can either use a DVD or USB drive. The latter is
 faster, and also easier if you wish to use UEFI. Directions for creating your
 installation media can be found online. 
 
@@ -164,13 +164,13 @@ Ryzen, Epyc, Core, and Xeon. The naming scheme dates back to when Intel had a
 competing and incompatible 64-bit architecture _ia64_.
 
 You can install from a DVD drive, USB device, or over the network. Any
-revision of the _11.<x>_ installer should work fine. (Generally, pick
+revision of the _13.<x>_ installer should work fine. (Generally, pick
 the latest, i.e., largest _<x>_. If there are non-zero patch versions,
-_<y>_, for a given _<x>_, e.g., _11.<x>.<y>_, pick the largest _<y>_.)
+_<y>_, for a given _<x>_, e.g., _13.<x>.<y>_, pick the largest _<y>_.)
 Note also that installing from DVDs as described here is
 recommended mainly for sites with little to poor Internet connectivity (even
 then, use of a single DVD may suffice) and the equivalent use of a "`Debian
-GNU/Linux _11.<x>.<y>_ Trixie - Official _i386_/_amd64_ NETINST`" CD would suffice for
+GNU/Linux _13.<x>.<y>_ Trixie - Official _i386_/_amd64_ NETINST`" CD would suffice for
 installation at most sites with good connectivity. Official images for the installer
 can be found at: https://cdimage.debian.org/cdimage/release/ 
 (or at: https://cdimage.debian.org/cdimage/archive/
@@ -638,7 +638,7 @@ For each additional DVD you wish to scan, insert it in the drive, select
 will need to use `*eject /dev/cdrom*` from another virtual console to do this)
 
 Select `No` and press  kbd:[Enter]  to continue once you are done.
-If prompted, insert the "`Debian GNU/Linux _11.<x>.<y>_ Trixie - Official _i386_/_amd64_
+If prompted, insert the "`Debian GNU/Linux _13.<x>.<y>_ Trixie - Official _i386_/_amd64_
 Binary-1 DVD`" back into the DVD-ROM drive and press  kbd:[Enter].
 
 WARNING: If you do scan additional DVDs, the following useful dialogue
@@ -1980,7 +1980,7 @@ when Rebuilds (and array checks) start and end. For full details on
 the script and installation instructions, please see the
 <<raid.adoc#_raid_events,raid-events>> subsection in the
 <<raid.adoc#_script_descriptions,Script descriptions>> section of the
-<<raid.adoc#,RAID Notes for FSL 11>> document.
+<<raid.adoc#,RAID Notes for FSL 12>> document.
 
 === Add refresh_spare_usr2
 
@@ -1991,7 +1991,7 @@ the _spare_ system. For full details on the script and installation
 instructions, please see the
 <<raid.adoc#_refresh_spare_usr2,refresh_spare_usr2>> subsection in the
 <<raid.adoc#_script_descriptions,Script descriptions>> section of the
-<<raid.adoc#,RAID Notes for FSL 11>> document.
+<<raid.adoc#,RAID Notes for FSL 12>> document.
 
 === Install pgplot version of pgperl
 
@@ -2046,7 +2046,7 @@ All steps are to be performed by _root_:
 . If you are using the RAID configuration with removable disks, it is
 recommended that you perform a disk rotation first (see the
 <<raid.adoc#_disk_rotation,Disk Rotation>> section in the
-<<raid.adoc#,RAID Notes for FSL 11>> document). This will provide an
+<<raid.adoc#,RAID Notes for FSL 12>> document). This will provide an
 easier recovery path in the unlikely event that something goes wrong.
 You do __not__ need to wait for the refresh to finish before
 upgrading.

@@ -18,9 +18,9 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //
 
-= RAID Notes for FSL 11
+= RAID Notes for FSL 12
 J.F.H. Quick, W.E. Himwich, and D.E. Horsley
-Version 1.2.1 - March 2025
+Version 0.0.1 - July 2025
 
 :sectnums:
 :experimental:
@@ -78,7 +78,7 @@ unless otherwise indicated.
 
 The FSL12 RAID configuration normally uses two disks configured
 according to the FSL12 installation instructions (see the
-<<installation.adoc#,FS Linux 11 Installation Guide>> document).
+<<installation.adoc#,FS Linux 12 Installation Guide>> document).
 Mandatory and recommended guidelines are given below.
 
 === Mandatory practices
@@ -483,7 +483,7 @@ straightforward to adapt the procedures for other cases.
 
 If you need to initialize more than one disk, please follow the
 instructions in the <<installation.adoc#_setup_additional_disks,Setup
-additional disks>> subsection of the <<installation.adoc#,FS Linux 11
+additional disks>> subsection of the <<installation.adoc#,FS Linux 12
 Installation Guide>> document.
 
 === Currently two disks are running in the RAID
@@ -747,7 +747,7 @@ _blank_secondary_), you may see a warning like:
 In this case, the message is benign and can be ignored _if_ the
 _primary_ disk has a partition layout that will fit on the smaller
 disk. This should be the case if the system was setup initially as
-described in the <<installation.adoc#,FS Linux 11 Installation Guide>>
+described in the <<installation.adoc#,FS Linux 12 Installation Guide>>
 document. This situation can occur if one (or more) of the disks is
 larger than the smallest one, perhaps because it was obtained as a
 replacement for a failed disk.
@@ -1360,7 +1360,7 @@ on the network. Please note that the IP address and host name is tied
 to the disks and not the computers. For information on how to
 configure this, please see the (optional)
 <<installation.adoc#_stabilize_network_configuration,Stabilize network
-configuration>> section of the <<installation.adoc#,FS Linux 11
+configuration>> section of the <<installation.adoc#,FS Linux 12
 Installation Guide>> document.
 
 The configuration of the system outside of the _/usr2_ partition
