@@ -191,11 +191,11 @@ readonly DIALOG="dialog --backtitle FS/Debian/Linux-fsadapt-12.0"
 readonly PATCHOPTS="-s -p1 --set-utc"
 
 readonly DEBIANVER="13."
-readonly KERNELVER="6.12.30"
+readonly KERNELVER="6.12."
 
 FSMESS="We are about to update a Debian ${DEBIANVER}x + Linux ${KERNELVER} (FS Linux 12)"
 FSLINUX00=$(cut -c1-3 < /etc/debian_version)
-FSLINUX01=$(uname -r | cut -c1-7)
+FSLINUX01=$(uname -r | cut -c1-5)
   if [ "${FSLINUX00}" != "${DEBIANVER}"  -o "${FSLINUX01}" != "${KERNELVER}" ]; then
       echo -n "WARNING: Could not find Debian version or "
       echo "did not find an approved FS kernel.";
@@ -571,7 +571,7 @@ rm ${VERBO} -f "${NEW_ROOT}"usr/local/include/sys/ugpib.h
 tar ${VERBO} --no-same-owner -xzf "${SRCS}"gpib/linux-gpib-${GPIBVER}.tar.gz
 pushd linux-gpib-${GPIBVER} > /dev/null || exit
 tar ${VERBO} --no-same-owner -xzf linux-gpib-kernel-${GPIBVER}.tar.gz
-(cd linux-gpib-kernel-${GPIBVER}; patch ${VERBOQ} -p1 < "${SRCS}"gpib/linux-gpib-kernel.patch)
+(cd linux-gpib-kernel-${GPIBVER}; patch ${VERBOQ} -p0 < "${SRCS}"gpib/linux-gpib-kernel.patch)
 tar ${VERBO} --no-same-owner -xzf linux-gpib-user-${GPIBVER}.tar.gz
 popd >/dev/null || exit
 popd >/dev/null || exit
@@ -673,7 +673,9 @@ fi
 # Dialog about running 'mkswap' on this partition.
 # (No point showing the dialog if we know we are running with
 #  that swap partition enabled.)
-if (grep -s -F $(readlink -f "${NEW_SWAP_DEVICE}") /proc/swaps); then
+if (grep -q -F $(readlink -f "${NEW_SWAP_DEVICE}") /proc/swaps); then
+  :
+else
   ${DIALOG} --title "Prepare this swap partition with 'mkswap'?" \
     --yesno \
 "You need to run 'mkswap' on any new swap partition at least once.\n\
@@ -1252,7 +1254,7 @@ EOF
   fi
   systemctl restart ntp
   systemctl --now mask cups-browsed
-  systemctl --now mask cups.socket; systemctl --now mask cups.
+  systemctl --now mask cups.socket; systemctl --now mask cups
   systemctl --now mask avahi-daemon.socket; systemctl --now mask avahi-daemon
 # always make sure these old insecure services are disabled just in case
   systemctl --now mask ftp > /dev/null 2>&1
