@@ -181,7 +181,6 @@ fonts-symbola					install
 fonts-urw-base35				install
 fort77						install
 fping						install
-ftp						install
 fuse3						install
 fvwm						install
 fvwm-icons					install
@@ -344,8 +343,6 @@ grub-efi-amd64-unsigned				install
 grub2-common					install
 gsasl-common					install
 gsettings-desktop-schemas			install
-gsfonts						install
-gsfonts-x11					install
 gstreamer1.0-gl:amd64				install
 gstreamer1.0-gtk3:amd64				install
 gstreamer1.0-gtk4:amd64				install
@@ -1574,7 +1571,6 @@ node-clipboard					install
 node-normalize.css				install
 node-prismjs					install
 ntfs-3g						install
-ntp						install
 ntpsec						install
 ntpsec-ntpdig					install
 nvi						install
@@ -1768,7 +1764,6 @@ shotwell-common					install
 simple-scan					install
 smartmontools					install
 smbclient					install
-sntp						install
 sound-icons					install
 sound-theme-freedesktop				install
 speech-dispatcher				install
