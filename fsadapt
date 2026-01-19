@@ -445,7 +445,7 @@ else
 fi
 
 # Linux GPIB driver for various GPIB boards.
-GPIBVER="4.3.6"
+GPIBVER="4.3.7"
 if [ ! -d "${NEW_ROOT}"usr/src/linux-gpib-${GPIBVER} ]; then
   atgpib_def="on"
 else
@@ -571,7 +571,7 @@ rm ${VERBO} -f "${NEW_ROOT}"usr/local/include/sys/ugpib.h
 tar ${VERBO} --no-same-owner -xzf "${SRCS}"gpib/linux-gpib-${GPIBVER}.tar.gz
 pushd linux-gpib-${GPIBVER} > /dev/null || exit
 tar ${VERBO} --no-same-owner -xzf linux-gpib-kernel-${GPIBVER}.tar.gz
-(cd linux-gpib-kernel-${GPIBVER}; patch ${VERBOQ} -p0 < "${SRCS}"gpib/linux-gpib-kernel.patch)
+#(cd linux-gpib-kernel-${GPIBVER}; patch ${VERBOQ} -p0 < "${SRCS}"gpib/linux-gpib-kernel.patch)
 tar ${VERBO} --no-same-owner -xzf linux-gpib-user-${GPIBVER}.tar.gz
 popd >/dev/null || exit
 popd >/dev/null || exit
