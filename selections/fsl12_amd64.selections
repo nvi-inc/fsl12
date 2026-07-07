@@ -200,6 +200,7 @@ gcr						install
 gcr4						install
 gdb						install
 gdbserver					install
+gdisk						install
 gdm3						install
 geoclue-2.0					install
 geocode-glib-common				install
@@ -1841,7 +1842,7 @@ whois						install
 wireless-regdb					install
 wireplumber					install
 wpasupplicant					install
-wsdd						install
+wsdd2						install
 wtmpdb						install
 x11-apps					install
 x11-common					install
