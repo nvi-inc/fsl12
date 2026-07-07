@@ -613,9 +613,11 @@ rm ${VERBO} -f "${NEW_ROOT}"etc/systemd/system/stalloc.service
 cp ${VERBO} systemd/fsalloc.service "${NEW_ROOT}"etc/systemd/system
 cp ${VERBO} systemd/stalloc.service "${NEW_ROOT}"etc/systemd/system
 if [ $VERBO ]; then
+  chroot "${NEW_ROOT}" systemctl daemon-reload
   chroot "${NEW_ROOT}" systemctl enable fsalloc.service
   chroot "${NEW_ROOT}" systemctl enable stalloc.service
 else
+  chroot "${NEW_ROOT}" systemctl daemon-reload >/dev/null
   chroot "${NEW_ROOT}" systemctl enable fsalloc.service >/dev/null
   chroot "${NEW_ROOT}" systemctl enable stalloc.service >/dev/null
 fi
@@ -931,11 +933,24 @@ If you don't have the models mentioned, please select 'None'.\n" \
   None    "Nothing, or a National Instruments RS232/GPIB converter" \
 2>/tmp/reply
 if [ $? = 0 ]; then
+  systemctl stop gpib.service >/dev/null 2>&1
+  systemctl disable gpib.service >/dev/null 2>&1
+  rm ${VERBO} -f /etc/systemd/system/gpib.service
+  systemctl daemon-reload >/dev/null 2>&1
 ############ National Instruments PCI-GPIB card ###############
   if [ "$(cat /tmp/reply)" = ni_pci ]; then
     sed -i -e "s/board_type = \"[a-z_0-9]*/board_type = \"ni_pci/" /etc/gpib.conf
     modprobe ${VERBO} tnt4882
-    gpib_config --minor 0
+    cp ${VERBO} systemd/gpib.service /etc/systemd/system/
+    if [ $VERBO ]; then
+      systemctl daemon-reload
+      systemctl enable gpib.service
+      systemctl start gpib.service
+    else
+      systemctl daemon-reload >/dev/null
+      systemctl enable gpib.service >/dev/null
+      systemctl start gpib.service >/dev/null
+    fi
 ############ National Instruments GPIB/USB converter ##########
   elif [ "$(cat /tmp/reply)" = ni_usb ]; then
     sed -i -e "s/board_type = \"[a-z_0-9]*/board_type = \"ni_usb_b/" /etc/gpib.conf

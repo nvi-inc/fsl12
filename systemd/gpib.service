@@ -1,0 +1,11 @@
+[Unit]
+Description=Configure Linux GPIB interfaces
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/gpib_config --minor 0
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
